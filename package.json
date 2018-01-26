@@ -1,0 +1,16 @@
+{
+  "name": "Shooter",
+  "version": "1.0.1",
+  "description": "Shooter",
+  "author": "www.otrisovano.ru",  
+  "main": "shooter.js",
+  "scripts": {
+    "backend": "node shooter.js",
+  },
+  "dependencies": {
+    "express": "^4.16.2",
+    "http": "^1",	
+    "socket.io": "^1",	
+    "fs": "^1",		
+  }
+}

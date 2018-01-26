@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title><!--&#9760;--></title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no"> 	
+	<link rel="stylesheet" href="styles/style.css">	
+	<link rel="icon" href ="styles/favicon.ico" type="image/x-icon"/>	
+</head>
+<body>	
+	<div id="startScreen">
+		<div id="startBlockWr">
+			<div id="startBlock">
+				<p id="logo">&there4;</p>
+				<p id="name">Shooter</p>
+				<p id="slogan"><i>online</i></p>
+				<div id="startmess">
+					<p id="mess">Cмотрим как все работает.</p>
+					<ul>
+						<li>F - ЗАФИКСИРОВАТЬ КАМЕРУ</li>
+						<li>Поворот - движение мышью</li>
+						<li>Двигаться-ЛКМ\ПКМ</li>
+					</ul>
+					<div id="startbutton">&#9760;</div>
+				</div>
+			</div>
+		</div>
+		<div id="copyRight">&#169; <a href="http://otrisovano.ru/" target="_blank">www.otrisovano.ru</a></div>		
+	</div>
+	
+	<div id="gameScreen">
+		<div id="debugDiv"></div>	
+		<canvas id="canvas"></canvas>
+	</div>	
+	<!--shaders-->
+	<script id="vertexShader" type="x-shader/x-vertex">
+uniform sampler2D noiseTexture;
+
+uniform sampler2D bumpTexture;
+uniform float bumpSpeed;
+uniform float bumpScale;
+
+uniform float time;
+
+varying vec2 vUv;
+varying vec3 newPosition;
+
+void main() 
+{ 
+    vUv = uv;
+	
+	//vec2 uvTimeShift = vUv + vec2( 1.1, 1.9 ) * time * bumpSpeed;
+	//vec4 noiseGeneratorTimeShift = texture2D( noiseTexture, uvTimeShift );
+	//vec2 uvNoiseTimeShift = vUv + noiseScale * vec2( noiseGeneratorTimeShift.r, noiseGeneratorTimeShift.g );
+	//* below, using uvTimeShift seems to result in more of a "rippling" effect
+	//*   while uvNoiseTimeShift seems to result in more of a "shivering" effect
+	//**vec4 bumpData = texture2D( bumpTexture, uvTimeShift );**//
+	
+	vec2 uvTimeShift = vUv + vec2( time * bumpSpeed , 1.0); 
+	vec4 bumpData = texture2D( bumpTexture, uvTimeShift );
+	
+	//* move the position along the normal
+	//*  but displace the vertices at the poles by the same amount
+	//float displacement = ( vUv.y > 0.999 || vUv.y < 0.001 ) ? 
+	//	bumpScale * (0.3 + 0.02 * sin(time)) :  
+	//	bumpScale * bumpData.r;
+    //vec3 newPosition = position + normal * displacement;
+	
+
+	float displacement = (bumpScale * bumpData.r);	
+	
+	/**float displacement = ( vUv.y > 0.7|| vUv.y < 0.3 ) ? 
+		bumpScale * (0.3 + 0.02 * sin(time)) :  
+		bumpScale * bumpData.r;*/
+	
+	/**float displacement = bumpScale * (0.8-abs(sin(time)));**/
+	vec3 newPosition = position + normal* displacement;	
+	
+	gl_Position = projectionMatrix * modelViewMatrix * vec4( newPosition, 1.0 );
+}
+</script>
+
+<!-- fragment shader -->
+<script id="fragmentShader" type="x-shader/x-vertex"> 
+varying vec2 vUv;
+varying vec3 newPosition;
+
+uniform sampler2D bumpTexture;
+uniform float bumpSpeed;
+
+uniform sampler2D baseTexture;
+uniform float time;
+
+void main() 
+{
+
+	vec2 uvTimeShift = vUv + vec2( time * bumpSpeed , 1.0); 
+	vec4 bumpData = texture2D( bumpTexture, uvTimeShift );
+
+	vec4 baseColor = texture2D( baseTexture, vUv);	
+	/** vec4 color = baseColor * vec4( 0.7+(abs(sin(time)*0.2)*vUv.x), 1.0, 0.7+abs(sin(time)*0.2*vUv.x), 1); */
+	vec4 color = baseColor * vec4( 0.72 + bumpData.r*0.3, 0.75 + bumpData.g*0.6, 0.65 + bumpData.b*0.3, 1.0);	
+	gl_FragColor = color;
+}
+</script>
+	<!--/shaders -->	
+	<!-- javascript libraries -->    
+	<script src="jsLibs/jquery.js"></script> 
+	<script src="jsLibs/socket.io.js"></script> 	
+	<script src="jsLibs/three.js"></script>
+	<script src="jsLibs/FirstPersonControls.js"></script>	
+	<script src="jsLibs/OBJLoader.js"></script>		
+	<!-- javascript --> 
+	<script src="js/3dscene.js"></script>  	
+	<script src="js/client.js"></script>	
+</body>
+</html>

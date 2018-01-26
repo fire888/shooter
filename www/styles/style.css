@@ -1,0 +1,144 @@
+
+/** MAIN PROP. */
+
+@font-face {
+	font-family: roboto-light; 
+	src: url(../styles/fonts/Roboto-Light.ttf); 
+}	
+
+* {
+	margin: 0px;
+	padding: 0px;
+}
+	
+body {
+	color: white;
+	font-family: roboto-light;
+	font-size: 15px; 
+	background-color: white;	
+}
+
+a{
+	color: grey; 
+}
+
+/** START BLOCK */
+
+#startScreen {
+	background-image:  url(../styles/back.png);
+	background-color: white;
+	background-repeat: no-repeat;	
+	background-position: top center;	
+	height: 100%;	
+	width: 100%;
+	position: absolute;
+	top: 0px;
+	left: 0px;
+}
+
+#startBlockWr {
+	padding: 15px;
+}
+
+#startBlock{
+	background-color: rgba(83, 98, 79, 0.6);
+	max-width: 340px;
+	min-height: 300px;
+	margin: 0 auto;
+	padding: 20px;
+	margin-top: 50px;	
+	text-align: center;
+	border: 20px solid #ffea6e;	
+	overflow: hidden;
+}
+
+#logo{
+	font-size: 60px;
+}
+#name{
+	font-weight: 800;
+	font-size: 30px;
+	margin-top: -20px;
+}
+#slogan{
+	font-size: 12px;
+}
+
+#startmess {
+	margin: 0 auto;	
+	margin-top: 20px; 
+	max-width: 250px;
+	text-align: justify;
+}
+
+#mess{
+	margin: 0 auto;
+	max-width: 250px;
+	margin-bottom: 15px;
+	margin-top: 30px;
+}
+
+#startmess ul{
+	margin: 0 auto;
+	max-width: 250px;
+	text-align: left;
+	margin-bottom:  60px;	
+}
+
+#startmess ul li{
+	margin-left: 30px;
+}
+
+#startbutton {
+	font-weight: 800;
+	font-size: 30px;
+	max-width: 200px;
+	padding: 5px;
+	margin: 0 auto;
+	margin-top: 30px;
+	margin-bottom: 60px;	
+	background-color: #e4da67;
+	border: 2px solid white;
+	border-radius: 3px;	
+	cursor: pointer;
+	user-select: none;	
+	-ms-user-select: none;
+	-moz-user-select: none;
+	-khtml-user-select: none;
+	-webkit-user-select: none;	
+	color: grey;
+	text-align: center;
+}
+
+#startbutton:hover{	
+	background-color: #728447;
+	color: white;
+}
+
+#copyRight {
+	margin: 0 auto;
+	margin-top: 30px;
+	color: grey;
+	width: 150px;
+}
+
+/** GAME CONTENT */
+ 
+#gameScreen {
+	z-index: 5;
+	display: none;
+	overflow: hidden;
+}
+
+/** DEBUGGER */
+
+#debugDiv {
+	min-width: 450px;
+	color: black;
+	font-size: 15px;
+	border: 2px solid #ffea6e;	
+	position:absolute;
+	left:0;
+	top:0;
+	z-index: 1000;
+}
