@@ -169,7 +169,8 @@ var Sc = function(){
 		
 		material.morphTargets = true;		
         scene3d.enemyGeom = new THREE.Mesh(geometry, material);		
-        scene3d.enemyGeom.position.x = 120;
+        scene3d.enemyGeom.position.x = 140;
+        scene3d.enemyGeom.position.z = -45;		
 		scene3d.enemyGeom.rotation.x=3.14/2;
 	    scene3d.enemyGeom.rotation.z=3.14/2;	
 	    scene3d.enemyGeom.rotation.y=3.14*1.5;
@@ -177,7 +178,7 @@ var Sc = function(){
         scene3d.scene.add(scene3d.enemyGeom);			
         scene3d.mixer = new THREE.AnimationMixer(scene3d.enemyGeom);
         var clip = THREE.AnimationClip.CreateFromMorphTargetSequence('ttt', geometry.morphTargets, 5);		
-        scene3d.mixer.clipAction(clip).setDuration(1).play();
+        scene3d.mixer.clipAction(clip).setDuration(3.0).play();
     }
     this.delta = 0;
     this.prevTime = Date.now();	
@@ -262,8 +263,8 @@ Sc.prototype.draw = function( player ) {
         this.mixer.update((time - this.prevTime) * 0.001);
         this.prevTime = time;
     }	
-	scene3d.enemyGeom.position.x -= 0.15;		
-
+	//scene3d.enemyGeom.rotation. -= 0.05;		
+	//scene3d.enemyGeom.rotation.copy( scene3d.rifleGeom.rotation );
 	/** update test Bot position */	
 	this.botGeom.position.z += 0.03;		
 }	
@@ -493,16 +494,24 @@ Sc.prototype.stopAnim = function(){
 	this.mixer = new THREE.AnimationMixer(this.mesh);
 	
 	var stay = [];
-	stay.push(this.geom.morphTargets[10])  
-	stay.push(this.geom.morphTargets[10]); 
+	stay.push(this.geom.morphTargets[0])  
+	stay.push(this.geom.morphTargets[0]); 
 	var clipStay = THREE.AnimationClip.CreateFromMorphTargetSequence('ttt', stay, 0.5); 	
 	
-	var go1 = [];
-	for ( var aa=0; aa<24; aa++ ){
-		go1.push(this.geom.morphTargets[aa]); 
+	var go = [];
+	for ( let aa=1; aa<20; aa++ ){
+		go.push(this.geom.morphTargets[aa]); 
 	}
-	var clipGo = THREE.AnimationClip.CreateFromMorphTargetSequence('ttt', go1, 0.5);
-
+	var clipGo = THREE.AnimationClip.CreateFromMorphTargetSequence('ttt', go, 0.5);
+	
+	var death = [];
+	for ( let aa = 21; aa < 38; aa++){
+		death.push(this.geom.morphTargets[aa]); 
+	}
+	for ( let aa = 0; aa < 38; aa++){
+		death.push(this.geom.morphTargets[36]); 
+	}	
+	var clipDeath = THREE.AnimationClip.CreateFromMorphTargetSequence('ttt', death, 0.5);	
 	
 	this.mixer.clipAction(clipGo).setDuration(0.5).play();
 		
@@ -529,7 +538,7 @@ Sc.prototype.stopAnim = function(){
 			
 			if (this.phase == "run"){		
 				this.mixer.clipAction(clipStay).setDuration(0.5).stop();			
-				this.mixer.clipAction(clipGo).setDuration(0.5).play();				
+				this.mixer.clipAction(clipGo).setDuration(1.5).play();				
 			}
 			if (this.phase == "stay"){
 				this.mixer.clipAction(clipGo).setDuration(0.5).stop();
