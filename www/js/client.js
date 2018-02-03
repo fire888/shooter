@@ -70,7 +70,8 @@ window.onload = function (){
 			getDataFromServer();	
 			$("#startScreen").hide();
 			$("#gameScreen").show();					
-			scene3d.startAnim();						
+			scene3d.startAnim();
+			addMouse();	
 		});
 	}	
 }
