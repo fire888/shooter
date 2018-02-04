@@ -11,7 +11,7 @@
 
 
 /*********************************************;
- *  Create obj 3D SCENE.
+ *  CONSTRUCTOR 3D SCENE
  *********************************************/		 
 
 var Sc = function(){
@@ -208,10 +208,12 @@ var Sc = function(){
 		requestAnimationFrame(function animate() {
 			if (scene3d.player){	
 
-				scene3d.draw( );
-				renderer.render(scene3d.scene, scene3d.camera);
+				/** update BOTs shader */
 				scene3d.scene.customUniforms.time.value += 0.01;
-			
+				
+				scene3d.draw( );		
+				renderer.render(scene3d.scene, scene3d.camera);
+
 				frameDelta += clock.getDelta();
 				while (frameDelta >= INV_MAX_FPS){				
 					scene3d.player.update(INV_MAX_FPS);						
@@ -233,35 +235,11 @@ var Sc = function(){
 
 Sc.prototype.draw = function(){
 
-	/*------------*/
-	let html = "_"
-	html = "<br/> Client geomArrEnemies: <br/>"; 
-	if ( this.arrPlayers ){	
-		for (let l=0; l< this.arrPlayers.length; l++ ){
-			html += "id: " + this.arrPlayers[l].id + " phase: "+ this.arrPlayers[l].phase + " spdX " + this.arrPlayers[l].spdX +   " spdZ " + this.arrPlayers[l].spdZ +  "<br/>";
-		}	
-	}
-	//html += "aimX : " + this.aim.position.x + "camX : " + this.camera.position.x;
-	//html += "<br/>aimZ : " + this.aim.position.z + "camZ : " + this.camera.position.z;	
-	$("#debugDiv").html( html );
-	/*------------*/	
 	
-	/** update position player rifle */
-	this.hero.update( );
+	/** update HERO */
+	this.hero.update( clientData );
 
-
-	/** put Player position and rotation in ClientData */	
-	clientData.posX = scene3d.player.target.x;
-	clientData.posZ = scene3d.player.target.z; 
-	clientData.rotation = scene3d.hero.meshRifle.rotation;
-	
-	/** check player collision */		
-	scene3d.player.isForwardCanMove = this.checkCollision({ 
-		x: scene3d.player.target.x, 
-		z: scene3d.player.target.z
-	});
-
-	/** update Bots */	
+	/** update BOTS */	
 	for ( let ib = 0; ib < this.arrBots.length; ib ++ ){
 		this.arrBots[ib].update();
 		if ( this.arrBots[ib].mustDie == true ){
@@ -273,18 +251,10 @@ Sc.prototype.draw = function(){
 		}	
 	}
 	
-	/** update Enemies positions */		
+	/** update ENEMIES */		
 	for ( let ip = 0; ip < this.arrPlayers.length; ip ++ ){
 		this.arrPlayers[ip].updateFrame();		
-	}
-	
-	/** update ENEMIES animation */
-    this.delta += 0.1;
-    if (this.mixer) {
-        var time = Date.now();
-        this.mixer.update((time - this.prevTime) * 0.001);
-        this.prevTime = time;
-    }
+	}	
 
 	/** update BULLETS */	
 	for ( let i=0; i<this.arrBullets.length; i++ ){ 
@@ -298,7 +268,7 @@ Sc.prototype.draw = function(){
 		}
 	};
 
-	/** update Explosives */	
+	/** update EXPLOSIVES */	
 	for ( let i = 0; i< this.arrExplosives.length; i++ ){
 		this.arrExplosives[i].update();
 		if (this.arrExplosives[i].mustDie == true){
@@ -308,7 +278,7 @@ Sc.prototype.draw = function(){
 			md.remove();
 			md = null;
 		}		
-	}		
+	}
 }	
 
 
@@ -331,7 +301,7 @@ Sc.prototype.putServerData = function(serverObjects){
 		}	
 	}
 		
-	/** update position bots */
+	/** update bots.data from server.data */
 	for (let i = 0; i < serverArrBots.length; i++ ){
 		for ( let g = 0; g < this.arrBots.length; g++  ){				
 			if ( this.arrBots[g].id == serverArrBots[i].id ){				
@@ -352,12 +322,9 @@ Sc.prototype.putServerData = function(serverObjects){
 			if ( isv > -1){	
 				if ( serverPlayers[isv].id == this.arrPlayers[ig].id && serverPlayers[isv].id != clientData.id  ){
 					
-					this.arrPlayers[ig].spdX = scene3d.calckSpeed( this.arrPlayers[ig].mesh.position.x, serverPlayers[isv].posX );
-					this.arrPlayers[ig].spdZ = scene3d.calckSpeed( this.arrPlayers[ig].mesh.position.z, serverPlayers[isv].posZ );
-					this.arrPlayers[ig].tgtX = serverPlayers[isv].posX;
-					this.arrPlayers[ig].tgtZ = serverPlayers[isv].posZ;	
-					this.arrPlayers[ig].rotation = serverPlayers[isv].rotation;	
-				
+					/** update objects Enemy from server */
+					this.arrPlayers[ig].updateDataFromServer(serverPlayers[isv]);	
+					
 					arr.push( this.arrPlayers[ig] );
 				
 					this.arrPlayers.splice(ig, 1);
@@ -369,7 +336,8 @@ Sc.prototype.putServerData = function(serverObjects){
 		}
 	}
 
-	/** if in arrGame have objects then delete it */ 	
+	/** if in arrGame have objects, but on server is not, 
+		delete it from arrGame */ 	
 	for ( let imd = 0; imd< this.arrPlayers.length; imd++){
 		let md = this.arrPlayers[imd];  
 		this.arrPlayers[imd].remove();
@@ -382,58 +350,40 @@ Sc.prototype.putServerData = function(serverObjects){
 	this.arrPlayers = arr;
 	arr = null;
 	
-	/** if have new players in serverArr then create new meshes */ 	
+	/** if have new players in serverArr, but in Game not it?
+		create new meshes */ 	
 	if ( serverPlayers.length > 0 ){
 		for ( let icr = 0; icr < serverPlayers.length; icr ++){
 			if ( serverPlayers[icr].id != clientData.id ){
-				console.log('create');
 				let en = new En();
 				en.id = serverPlayers[icr].id;				
 				en.mesh.position.x = serverPlayers[icr].posX;
 				en.mesh.position.y = 0;
 				en.mesh.position.z = serverPlayers[icr].posZ;
 				en.rotation = serverPlayers[icr].rotation; 
-				console.log(en.rotation);
 				this.arrPlayers.push(en);				
 				
 			}	
 		}
 	}
 		
-	/** debugger ---------------- */
-	/*let html = "_"
-	html += "your id: " + clientData.id + "<br/> serverPlayers:<br/>"; 
-	for (let l=0; l< serverPlayers.length; l++ ){
-		html += "id: " + serverPlayers[l].id + " lifetimer: " +  serverPlayers[l].timerLife + "<br/>";
-	}	
-	html += "<br/> Client geomArrEnemies: <br/>"; 
-	if ( this.arrPlayers ){	
-		for (let l=0; l< this.arrPlayers.length; l++ ){
-			html += "id: " + this.arrPlayers[l].id + " phase: "+ this.arrPlayers[l].phase + "<br/>";
-		}	
-	}
-	$("#debugDiv").html( html );*/	
-	/** ------------------------- */			
+	/*DEBUGGER ---------------- */
+	//let html = "_"
+	//html += "your id: " + clientData.id + "<br/> serverPlayers:<br/>"; 
+	//for (let l=0; l< serverPlayers.length; l++ ){
+	//	html += "id: " + serverPlayers[l].id + " lifetimer: " +  serverPlayers[l].timerLife + "<br/>";
+	//}	
+	//html += "<br/> Client geomArrEnemies: <br/>"; 
+	//if ( this.arrPlayers ){	
+	//	for (let l=0; l< this.arrPlayers.length; l++ ){
+	//		html += "id: " + this.arrPlayers[l].id + " phase: "+ this.arrPlayers[l].phase + "<br/>";
+	//	}	
+	//}
+	//$("#debugDiv").html( html );*/	
+	/* ------------------------- */			
 }
 	
-
-/*********************************************;
- *  FUNCTIONS STOP/START REDRAW SCENE
- *********************************************/	
-
-Sc.prototype.startAnim = function(){	
-	if ( this.flagAnim == false ){
-		this.flagAnim = true;
-		this.startAnimationScene();			
-	}
-}	
-
-Sc.prototype.stopAnim = function(){	
-	if ( this.flagAnim == true ){
-		this.flagAnim = false;		
-	}			
-}
-
+	
 /*********************************************;
  *  OBJECT HERO  
  *********************************************/	
@@ -442,44 +392,58 @@ Sc.prototype.stopAnim = function(){
 	 
 	this.hero = {
 		timerRifleAnim: 0,
-		flagAnimTop : false,
+		flagRifleAnim : "none",
 		meshRifle: null,	
 		aim: null,
 		controls: null,
 		
-		update: function( cam, pl ){
+		update: function( clientData ){
 			
+			/** aim position */ 
 			scene3d.hero.aim.position.x = scene3d.player.target.x;
 			scene3d.hero.aim.position.z = scene3d.player.target.z;
-			scene3d.hero.aim.position.y = 10;			
+			scene3d.hero.aim.position.y = 10;				
 			
-			scene3d.hero.meshRifle.lookAt( scene3d.hero.aim.position );
+			/** rifle position */
 			scene3d.hero.meshRifle.position.x = scene3d.camera.position.x;
-			scene3d.hero.meshRifle.position.z = scene3d.camera.position.z;			
-
-			if( scene3d.hero.flagAnimTop == true)
-			{ 
+			scene3d.hero.meshRifle.position.z = scene3d.camera.position.z;				
+			scene3d.hero.meshRifle.lookAt( scene3d.hero.aim.position );			
+					
+			/** put Player position and rotation in ClientData */	
+			clientData.posX = scene3d.player.target.x;
+			clientData.posZ = scene3d.player.target.z; 
+			clientData.rotation = scene3d.hero.meshRifle.rotation;
+	
+			/** check player collision */		
+			scene3d.player.isForwardCanMove = scene3d.checkCollision({ 
+				x: scene3d.player.target.x, 
+				z: scene3d.player.target.z
+			});			
+			
+			/** animation rifle fire */
+			if( scene3d.hero.flagRifleAnim == "top"){ 
 				scene3d.hero.meshRifle.position.y += 0.05; 
-				if (scene3d.hero.meshRifle.position.y > 10.2)
-				{
-					scene3d.hero.flagAnimTop = false; 
+				if (scene3d.hero.meshRifle.position.y > 10.2){
+					scene3d.hero.flagRifleAnim = "bottom"; 
 				}
 			}
-			if ( scene3d.hero.flagAnimTop == false )
-			{
-				if (scene3d.hero.meshRifle.position.y > 9.98 )
-				{
+			if ( scene3d.hero.flagRifleAnim == "bottom" ){
+				if (scene3d.hero.meshRifle.position.y > 10 ){
 					scene3d.hero.meshRifle.position.y -= 0.05;						
+				}
+				if (scene3d.hero.meshRifle.position.y == 10){
+					scene3d.hero.flagRifleAnim = "none"; 					
 				}
 
 			}
 		},
 		
 		startRifleFire: function(){
-			scene3d.hero.flagAnimTop = true;
+			scene3d.hero.flagRifleAnim = "top";
 		}			
 	}
 };
+
 
 /*********************************************;
  *  CONSTRUCTOR BOT
@@ -508,6 +472,16 @@ Sc.prototype.stopAnim = function(){
 			
 	scene3d.scene.add(this.mesh);
 
+	/** update this.data from server.data */ 
+	this.updateDataFromServer = function( dataBot ){
+		
+		this.targetX = dataBot.targetPosX;
+		this.targetZ = dataBot.targetPosZ;
+		this.speedX = scene3d.calckSpeed( this.mesh.position.x, this.targetX );
+		this.speedZ = scene3d.calckSpeed( this.mesh.position.z, this.targetZ );	
+	}
+	
+	/** update per frame */
 	this.update = function(){
 		
 		this.kvadrantBulletX = scene3d.calckKvadrant( this.mesh.position.x );
@@ -522,39 +496,31 @@ Sc.prototype.stopAnim = function(){
 			let scl = this.mesh.scale.x - 0.03;  
 			this.mesh.scale.set( scl, 1, scl );
 			animIllcount --;
-			if ( animIllcount == 0 ){
-				lifes --;				
-				if (lifes > 0){
+			if ( animIllcount == 0 ){				
 					this.mesh.scale.set( 1, 1, 1 );	
 					isIll = false;
-					animIllcount = 10;					
-				}					
+					animIllcount = 10;										
 			}
 		}
 		if (isIll == true && lifes == 0 ){
-			let scl = this.mesh.scale.x + 0.01;
-			//let sclY = this.mesh.scale.y - 0.02; 			
+			let scl = this.mesh.scale.x + 0.01;		
 			this.mesh.scale.set( scl, 1, scl );
 			this.mesh.position.y -= 0.1;
 			if ( this.mesh.position.y < -15 ){
-				/** DIE OBJECT */
 				this.mustDie = true;
 			}				
 		}			
 	}
-
-	this.updateDataFromServer = function( dataBot ){
-		this.targetX = dataBot.targetPosX;
-		this.targetZ = dataBot.targetPosZ;
-		this.speedX = scene3d.calckSpeed( this.mesh.position.x, this.targetX );
-		this.speedZ = scene3d.calckSpeed( this.mesh.position.z, this.targetZ );	
-	}	
 	
-	/** Functions ill */
+	/** get Bullet */
 	this.getBullet = function(){
 		isIll = true;
+		if (lifes > 0){
+			lifes --;				
+		}
 	}
 	
+	/** remove this OBJECT */
 	this.remove = function(){
 	
 		this.mustDie = null;
@@ -575,6 +541,7 @@ Sc.prototype.stopAnim = function(){
 	}
 }
 
+/** Mesh variable */
 Bot.mesh = false; 
 	 
  
@@ -584,7 +551,9 @@ Bot.mesh = false;
  
  var En = function(){
 	 
-	/** vars */ 
+	/** vars */
+	this.lifes = 3;
+	
 	this.id = false;
 	this.spdX = 0;
 	this.spdZ = 0;
@@ -594,6 +563,8 @@ Bot.mesh = false;
 	
 	this.kvadrantX = 0;
 	this.kvadrantZ = 0;	
+	this.kvadrantBulletX = 0;
+	this.kvadrantBulletZ = 0;		
 		
 	this.geom = En.MESH;
 	this.mat = En.MATERIAL;
@@ -601,73 +572,118 @@ Bot.mesh = false;
 	this.mesh = new THREE.Mesh(this.geom, this.mat);
 	
 	scene3d.scene.add(this.mesh);	
-	
-	var phaseOld = "run";
-	this.phase = "run";
-	
+		
 	/** Mixer vars */
-	this.delta = 0;
+	var phaseOld = "run";
+	this.phase = "run";	
+	var animTimer = 30;
+	
 	this.prevTime = Date.now();		
 	this.mixer = new THREE.AnimationMixer(this.mesh);
 	
-	var stay = [];
+	let stay = [];
 	stay.push(this.geom.morphTargets[0])  
 	stay.push(this.geom.morphTargets[0]); 
 	var clipStay = THREE.AnimationClip.CreateFromMorphTargetSequence('ttt', stay, 0.5); 	
 	
-	var go = [];
-	for ( let aa=1; aa<20; aa++ ){
+	let go = [];
+	for ( let aa=1; aa<21; aa++ ){
 		go.push(this.geom.morphTargets[aa]); 
 	}
 	var clipGo = THREE.AnimationClip.CreateFromMorphTargetSequence('ttt', go, 0.5);
 	
-	var death = [];
-	for ( let aa = 21; aa < 38; aa++){
-		death.push(this.geom.morphTargets[aa]); 
+	let ill = [];
+	for (let aa=22; aa<29; aa++  ){
+		ill.push(this.geom.morphTargets[aa]); 
 	}
-	for ( let aa = 0; aa < 38; aa++){
-		death.push(this.geom.morphTargets[36]); 
+	for (let aa=29; aa>22; aa--  ){
+		ill.push(this.geom.morphTargets[aa]); 
 	}	
-	var clipDeath = THREE.AnimationClip.CreateFromMorphTargetSequence('ttt', death, 0.5);	
-	
-	this.mixer.clipAction(clipGo).setDuration(0.5).play();
+	var clipIll = THREE.AnimationClip.CreateFromMorphTargetSequence('ttt', ill, 0.5);
 		
-	/** Update per frame */	
+	let death = [];
+	for ( let aa = 23; aa < 38; aa++){
+		death.push(this.geom.morphTargets[aa]); 		
+	}
+	var clipDeath = THREE.AnimationClip.CreateFromMorphTargetSequence('ttt', death, 0.5);
+
+	/** update this data from server data */	
+	this.updateDataFromServer = function(serverData){ 
+	
+		this.spdX = scene3d.calckSpeed( this.mesh.position.x, serverData.posX );
+		this.spdZ = scene3d.calckSpeed( this.mesh.position.z, serverData.posZ );
+		this.tgtX = serverData.posX;
+		this.tgtZ = serverData.posZ;	
+		this.rotation = serverData.rotation;
+	}					
+	
+	/** update this per frame */	
 	this.updateFrame = function(){
 		
 		/** update animation */
 		if (this.mixer){
-			this.delta += 0.1;
 			let time = Date.now();
-			this.mixer.update((time - this.prevTime) * 0.001);
+			
+			if (this.phase == "run" ){
+				this.mixer.update((time - this.prevTime) * 0.001);
+			}
+			if (this.phase == "ill" ){
+				this.mixer.update((time - this.prevTime) * 0.001);
+				animTimer --;
+				if ( animTimer == 0){
+					animTimer = 30;
+					this.phase = "none";
+					this.mixer.clipAction(clipIll).setDuration(0.5).stop();	
+				}				
+			}			
+			if (this.phase == "dieAnim"){
+				if (animTimer > 0){
+					animTimer --;					
+					this.mixer.update((time - this.prevTime) * 0.001);					
+				}
+			}
+	
 			this.prevTime = time;
 		}
 		
-		if ( Math.abs(this.spdX) > 0.02 || Math.abs(this.spdZ) > 0.02 ){
-			this.phase = "run";
-		}
-		if ( Math.abs(this.spdX) == 0 && Math.abs(this.spdZ) == 0 ){		
-			this.phase = "stay";
+		/** update statuses animation */	
+		if (this.phase != "ill" && this.phase != "dieAnim"){	
+			if ( Math.abs(this.spdX) > 0.02 || Math.abs(this.spdZ) > 0.02 ){
+				this.phase = "run";
+			}
+			if ( Math.abs(this.spdX) == 0 && Math.abs(this.spdZ) == 0 ){		
+				this.phase = "stay";
+			}
 		}
 		
+		/** start animation if phase changed */
 		if( this.phase != this.oldPhase ){
 			this.oldPhase = this.phase;	
 			
-			if (this.phase == "run"){		
-				this.mixer.clipAction(clipStay).setDuration(0.5).stop();			
+			if (this.phase == "run"){				
 				this.mixer.clipAction(clipGo).setDuration(1.5).play();				
 			}
 			if (this.phase == "stay"){
-				this.mixer.clipAction(clipGo).setDuration(0.5).stop();
-				this.mixer.clipAction(clipStay).setDuration(0.5).play();
-				//this.mixer.clipAction(clipStay).setDuration(0.5).stop();				
+				this.mixer.clipAction(clipGo).setDuration(0.5).stop();		
 			}
+			if (this.phase == "ill"){
+				this.mixer.clipAction(clipIll).setDuration(0.5).play();
+			}		
+			if (this.phase == "dieAnim"){
+				animTimer = 28;			
+				this.mixer.clipAction(clipDeath).setDuration(0.5).play();				
+			}			
 		}			
    		
-		/** update rotation */		
-		this.mesh.rotation.copy( this.rotation );	
+		/** update rotation */	
+		if (this.phase != "dieAnim"){	
+			this.mesh.rotation.copy( this.rotation );	
+		}
 		
 		/** update position */
+		this.kvadrantBulletX = scene3d.calckKvadrant( this.mesh.position.x );
+		this.kvadrantBulletZ = scene3d.calckKvadrant( this.mesh.position.z );		
+		
 		if ( Math.abs( this.mesh.position.x - this.tgtX ) < 2 ){
 			this.spdX = 0;	
 		}else{
@@ -681,8 +697,19 @@ Bot.mesh = false;
 		
 		}
 	}
+	
+	/** get bullet */
+	this.getBullet = function(){
+		this.lifes --;
+		if (this.lifes == 0){
+			this.phase = "dieAnim";	
+		}
+		if (this.lifes>0){
+			this.phase = "ill";
+		}	
+	}
 
-	/** remove geom from scene */
+	/** remove this OBJECT from scene */
 	this.remove = function(){
 		scene3d.scene.remove(this.mesh);
 		this.mesh = null;
@@ -695,7 +722,7 @@ Bot.mesh = false;
 	}		
  };
 
-/** enemy geom main vars */  
+/** enemy MESH main vars */  
 En.MESH = false; 
 En.MATERIAL = false;
 
@@ -721,6 +748,7 @@ var Bullet = function(v){
 	var spdZ = v.spdZ;
 	scene3d.scene.add( this.mesh );
 	
+	
 	this.update = function(){
 		
 		timeLife --;
@@ -737,21 +765,32 @@ var Bullet = function(v){
 			this.mustDie = true;
 		}	
 
-		this.checkKillBot();	
+		this.checkKillBotAndEnemy();	
 	}
 	
-	this.checkKillBot = function(){
+	
+	this.checkKillBotAndEnemy = function(){
+		
 		this.kvadrantBulletX = scene3d.calckKvadrant( this.mesh.position.x );
 		this.kvadrantBulletZ = scene3d.calckKvadrant( this.mesh.position.z );
-		for ( let i=0; i< scene3d.arrBots.length; i++ ){
+		
+		for ( let i=0; i<scene3d.arrBots.length; i++ ){
 			if ( this.kvadrantBulletX == scene3d.arrBots[i].kvadrantBulletX && this.kvadrantBulletZ == scene3d.arrBots[i].kvadrantBulletZ ){
 				scene3d.initExplosive( this.mesh.position.x, this.mesh.position.z );
 				scene3d.arrBots[i].getBullet();	
-				this.mustDie = true;
-				console.log( "bullX:  " + this.kvadrantBulletX + " botX: " + scene3d.arrBots[i].kvadrantBulletX + " / bullZ: " + this.kvadrantBulletZ + " botZ: " + scene3d.arrBots[i].kvadrantBulletZ)	
+				this.mustDie = true;	
 			}
 		}
-	}		
+		
+		for ( let i=0; i<scene3d.arrPlayers.length; i++ ){
+			if ( this.kvadrantBulletX == scene3d.arrPlayers[i].kvadrantBulletX && this.kvadrantBulletZ == scene3d.arrPlayers[i].kvadrantBulletZ ){
+				scene3d.initExplosive( this.mesh.position.x, this.mesh.position.z );
+				scene3d.arrPlayers[i].getBullet();	
+				this.mustDie = true;
+			}			
+		}	
+	}
+	
 	
 	this.remove = function(){
 		this.id = null;
@@ -764,14 +803,14 @@ var Bullet = function(v){
 	}
 };
 
-/** Bullet geom maim vars */
+/** Bullet MESH main vars */
 Bullet.id = 0;
 Bullet.geom = new THREE.SphereGeometry( 0.3, 5, 5 ); 
 Bullet.material = new THREE.MeshBasicMaterial( {color: 0xffffff} ); 
 
 
 /*********************************************;
- *  Constructor Explosive.
+ *  CONSTRUCTOR EXPLOSIVE
  *********************************************/	
  
 Sc.prototype.initExplosive = function( x, z ){
@@ -827,9 +866,10 @@ var Explosive = function(x, z){
 
  	
 /*********************************************;
- *  Function Check Collision.
+ *  OBJECT USED FUNCTIONS:
  *********************************************/	
 
+/** check collision wish walls */
 Sc.prototype.checkCollision = function( cl ){ 
 		
 	let collision = true;
@@ -880,12 +920,33 @@ Sc.prototype.checkCollision = function( cl ){
 	return collision; 
 };
 
+/** calk speed to move object to point */
 Sc.prototype.calckSpeed = function( pos, tgt ){ return (tgt-pos)* scene3d.fps; }
 
+/** calck kvadrant for check collision with another obj */ 
 Sc.prototype.calckKvadrant = function( val ){ return ( Math.floor(val/10)) }
  
+ 
 /*********************************************;
- *  KEYBOARD AND MOUSE LISTENERS
+ *  FUNCTIONS STOP/START REDRAW SCENE
+ *********************************************/	
+
+Sc.prototype.startAnim = function(){	
+	if ( this.flagAnim == false ){
+		this.flagAnim = true;
+		this.startAnimationScene();			
+	}
+}	
+
+Sc.prototype.stopAnim = function(){	
+	if ( this.flagAnim == true ){
+		this.flagAnim = false;		
+	}			
+}
+ 
+ 
+/*********************************************;
+ *  MOUSE CLICK LISTENER for FIRE HERO
  *********************************************/ 
 
 function addMouse(){ 
