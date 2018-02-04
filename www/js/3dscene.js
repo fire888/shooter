@@ -144,7 +144,7 @@ var Sc = function(){
 	bumpTexture.wrapS = bumpTexture.wrapT = THREE.RepeatWrapping; 	
 	var bumpSpeed   = 0.4;
 	var bumpScale   = 3.0;
-	this.scene.customUniforms = {
+	this.scene.botMatUniforms = {
 		baseTexture: 	{ type: "t", value: botDiff },
 		bumpTexture:	{ type: "t", value: bumpTexture },
 		bumpSpeed: 		{ type: "f", value: bumpSpeed },
@@ -153,25 +153,18 @@ var Sc = function(){
 		time: 			{ type: "f", value: 1.0 }
 	};	
 	
-	var customMaterial = new THREE.ShaderMaterial({
-		uniforms: this.scene.customUniforms,
-		vertexShader: document.getElementById( 'vertexShader'   ).textContent,
+	var botMaterial = new THREE.ShaderMaterial({
+		uniforms: this.scene.botMatUniforms,
+		vertexShader: document.getElementById( 'vertexShader' ).textContent,
 		fragmentShader: document.getElementById( 'fragmentShader' ).textContent
 	});	
 	
-	Bot.mesh;
-	var botGeom;
 	var loaderBot = new THREE.OBJLoader();
 	loaderBot.load('assets/bot.obj', function(mesh){
 		mesh.traverse( function ( child ){
-				child.material = customMaterial;                   						 
+				child.material = botMaterial;                   						 
 		});	
 		Bot.mesh = mesh.clone();
-		botGeom = mesh;	
-		botGeom.position.set(130, 0, -45); 
-		botGeom.scale.set(1, 1, 1);
-		scene3d.botGeom = botGeom;	
-		scene3d.scene.add(botGeom);
 	});	
 	
 	
@@ -182,23 +175,8 @@ var Sc = function(){
 	function handle_load(geometry, materials) {
 		var material = materials[ 0 ];
 		En.MATERIAL = material;	
-		En.MESH = geometry; 
-		
-		material.morphTargets = true;		
-        scene3d.enemyGeom = new THREE.Mesh(geometry, material);		
-        scene3d.enemyGeom.position.x = 140;
-        scene3d.enemyGeom.position.z = -45;		
-		scene3d.enemyGeom.rotation.x=3.14/2;
-	    scene3d.enemyGeom.rotation.z=3.14/2;	
-	    scene3d.enemyGeom.rotation.y=3.14*1.5;
-			
-        scene3d.scene.add(scene3d.enemyGeom);			
-        scene3d.mixer = new THREE.AnimationMixer(scene3d.enemyGeom);
-        var clip = THREE.AnimationClip.CreateFromMorphTargetSequence('ttt', geometry.morphTargets, 5);		
-        scene3d.mixer.clipAction(clip).setDuration(3.0).play();
-    }
-    this.delta = 0;
-    this.prevTime = Date.now();	
+		En.MESH = geometry; 						
+	}	
 	
 	
 	/** ANIMATION SETUP ****************************/
@@ -209,7 +187,7 @@ var Sc = function(){
 			if (scene3d.player){	
 
 				/** update BOTs shader */
-				scene3d.scene.customUniforms.time.value += 0.01;
+				scene3d.scene.botMatUniforms.time.value += 0.01;
 				
 				scene3d.draw( );		
 				renderer.render(scene3d.scene, scene3d.camera);
