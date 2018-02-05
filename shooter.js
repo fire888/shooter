@@ -22,10 +22,38 @@ app.use(express.static('www'));
 var server = app.listen(3010);
 io.listen(server);
 
-/** create game object */
+/** create game object like
+ *
+ *	gameObj = {
+ *     arrPlayers:[
+ *			{ 
+ *			 	id: ... ,
+ *				posX: ... ,
+ *				posZ: ... ,
+ *				rotation: ... ,
+ *				timerLife: ...,
+ *				oldPosX: .... 	
+ *			},
+ *			...
+ *		], 
+ *		arrBots:[		
+ *			{
+ *				id: ... ,
+ *				targetPosX: ... ,
+ *				targetPosZ: ... ,
+ *				speedX: ... ,
+ *				speedZ: ... ,
+ *			},
+ *			...
+ *		]
+ *	}
+ *
+ */
+ 
 var gameObj = {
 	arrBots:[],
-	arrPlayers:[]
+	arrPlayers:[],
+	arrBullets:[]
 };
 
 /** create test Bots */
@@ -87,6 +115,8 @@ function updateGameData(){
 	
 	/** Send game data to all clients. */	
 	io.sockets.emit('message', gameObj );
+	/** delete Bullets */
+	gameObj.arrBullets = [];
 	
 	timerUpdate = setTimeout( updateGameData, 500);	
 }	
@@ -100,34 +130,62 @@ function updateGameData(){
 /** Get client data */ 
 io.on('connection',function(socket){
 	socket.on('clientData', function(data){
-	  
-		let isPlayer = false;
 		
+		/** PLAYERS */
+		
+		let isPlayer = false;
+
 		/** insert in gameObj player coords */ 	
-		for ( let n = 0; n< gameObj.arrPlayers.length; n++ ){		
-			if (gameObj.arrPlayers[n].id == data.id){
-				isPlayer = true;	
+		for ( let n = 0; n< gameObj.arrPlayers.length; n++ ){
 			
-				gameObj.arrPlayers[n].posX = data.posX;
-				gameObj.arrPlayers[n].posZ = data.posZ;	
-				gameObj.arrPlayers[n].rotation = data.rotation;	
+			//console.log(gameObj.arrPlayers[n].id + "::" +  data.hero.id);	
+			
+			if (gameObj.arrPlayers[n].id == data.hero.id){
+						
+				isPlayer = true;	
+						
+				gameObj.arrPlayers[n].posX = data.hero.posX;
+				gameObj.arrPlayers[n].posZ = data.hero.posZ;	
+				gameObj.arrPlayers[n].rotation = data.hero.rotation;		
 			}			
 		}
-	
+		
 		/** Insert new client in gameObject */ 	
 		if (isPlayer == false){
 			let player = {
 			
-				id: data.id,
-				posX: data.posX,
-				posZ: data.posZ,
-				rotation: data.rotation,
+				id: data.hero.id,
+				posX: data.hero.posX,
+				posZ: data.hero.posZ,
+				rotation: data.hero.rotation,
 			
 				timerLife: 15,
-				oldPosX: data.posX,			
+				oldPosX: data.posX		
 			}
 			gameObj.arrPlayers.push(player);
-		}	
+		}
+
+		/** BULLETS */
+
+		/** insert in gameObj player coords */
+		if (data.arrNewBullets){
+
+			for ( let n = 0; n<data.arrNewBullets.length; n++ ){
+					
+				if (data.arrNewBullets[n]){
+						
+					let bullet = {
+						id: data.arrNewBullets[n].id,
+						authorId: data.arrNewBullets[n].authorId, 
+						posX: data.arrNewBullets[n].posX,
+						posZ: data.arrNewBullets[n].posZ,
+						spdX: data.arrNewBullets[n].spdX,
+						spdZ: data.arrNewBullets[n].spdZ					
+					}
+					gameObj.arrBullets.push(bullet);
+				}										
+			}			
+		}		
 	});
 });  
  

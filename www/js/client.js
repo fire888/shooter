@@ -28,14 +28,19 @@ var socket, timerSendDataClient;
 socket = io();
 
 var clientData = {
-	id: Math.floor(Math.random()*100000),	
-	posX:0,
-	posZ:0,
-	rotation: 0
+	hero:{
+		id: Math.floor(Math.random()*100000),	
+		posX:0,
+		posZ:0,
+		rotation: 0
+	},
+		
+	arrNewBullets:[]		
 };
 
 var sendDataToServer = function () {
-	socket.emit( 'clientData', clientData );		
+	socket.emit( 'clientData', clientData );
+	clientData.arrNewBullets = [];	
 	timerSendDataClient = setTimeout( sendDataToServer, 500);
 }
 

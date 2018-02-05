@@ -20,10 +20,13 @@ var Sc = function(){
 
 	/** INIT VARS ****************************/
 	
-	/** GAME VARS  this.hero = {};  */
+	//DEBUGGER 
+	var debugMess = "_";
 	
+	/** GAME VARS   */
+	
+	/** this.hero = {}; */ 
 	this.arrBots = [];
-	this.arrExplosivesBot = [];
 	this.arrPlayers = [];
 	this.arrBullets = [];
 	this.arrExplosives = [];
@@ -215,7 +218,7 @@ Sc.prototype.draw = function(){
 
 	
 	/** update HERO */
-	this.hero.update( clientData );
+	this.hero.update( clientData.hero );
 
 	/** update BOTS */	
 	for ( let ib = 0; ib < this.arrBots.length; ib ++ ){
@@ -257,6 +260,14 @@ Sc.prototype.draw = function(){
 			md = null;
 		}		
 	}
+	
+	/* Debugger ------- */ 
+	scene3d.debugMess = clientData.arrNewBullets.length + "<br/>";
+	for (let l=0; l< clientData.arrNewBullets.length; l++ ){
+		scene3d.debugMess += "Bullet id: " + clientData.arrNewBullets[l].id +  "<br/>";
+	}
+	$("#debugDiv").html( scene3d.debugMess );	
+	/*-------------------*/
 }	
 
 
@@ -298,7 +309,7 @@ Sc.prototype.putServerData = function(serverObjects){
 	for ( let isv=0; isv<serverPlayers.length; isv++ ){
 		for ( let ig=0; ig<this.arrPlayers.length; ig ++){
 			if ( isv > -1){	
-				if ( serverPlayers[isv].id == this.arrPlayers[ig].id && serverPlayers[isv].id != clientData.id  ){
+				if ( serverPlayers[isv].id == this.arrPlayers[ig].id && serverPlayers[isv].id != clientData.hero.id  ){
 					
 					/** update objects Enemy from server */
 					this.arrPlayers[ig].updateDataFromServer(serverPlayers[isv]);	
@@ -332,7 +343,7 @@ Sc.prototype.putServerData = function(serverObjects){
 		create new meshes */ 	
 	if ( serverPlayers.length > 0 ){
 		for ( let icr = 0; icr < serverPlayers.length; icr ++){
-			if ( serverPlayers[icr].id != clientData.id ){
+			if ( serverPlayers[icr].id != clientData.hero.id ){
 				let en = new En();
 				en.id = serverPlayers[icr].id;				
 				en.mesh.position.x = serverPlayers[icr].posX;
@@ -344,20 +355,33 @@ Sc.prototype.putServerData = function(serverObjects){
 			}	
 		}
 	}
+	
+	
+	/** Create server Bullets =========================== */
+	
+	let serverBullets = serverObjects.arrBullets;
+	
+	if ( serverBullets.length > 0 ){
+		for ( let i=0; i<serverBullets.length; i++ ){
+			if ( serverBullets[i].authorId != clientData.hero.id ){
+				scene3d.createNewServerBullet( serverBullets[i] );
+			}	
+		}			
+	}		
 		
 	/*DEBUGGER ---------------- */
-	//let html = "_"
-	//html += "your id: " + clientData.id + "<br/> serverPlayers:<br/>"; 
-	//for (let l=0; l< serverPlayers.length; l++ ){
-	//	html += "id: " + serverPlayers[l].id + " lifetimer: " +  serverPlayers[l].timerLife + "<br/>";
-	//}	
+	scene3d.debugMess += "your id: " + clientData.hero.id + "<br/> serverPlayers:<br/>"; 
+	for (let l=0; l< serverPlayers.length; l++ ){
+		scene3d.debugMess += "id: " + serverPlayers[l].id + " lifetimer: " +  serverPlayers[l].timerLife + "<br/>";
+	}	
 	//html += "<br/> Client geomArrEnemies: <br/>"; 
 	//if ( this.arrPlayers ){	
 	//	for (let l=0; l< this.arrPlayers.length; l++ ){
 	//		html += "id: " + this.arrPlayers[l].id + " phase: "+ this.arrPlayers[l].phase + "<br/>";
 	//	}	
 	//}
-	//$("#debugDiv").html( html );*/	
+	//$("#debugDiv").html( scene3d.debugMess );
+	//scene3d.debugMess = "_";
 	/* ------------------------- */			
 }
 	
@@ -369,13 +393,14 @@ Sc.prototype.putServerData = function(serverObjects){
  Sc.prototype.createObjectHero = function(){
 	 
 	this.hero = {
+		id: clientData.hero.id, 
 		timerRifleAnim: 0,
 		flagRifleAnim : "none",
 		meshRifle: null,	
 		aim: null,
 		controls: null,
 		
-		update: function( clientData ){
+		update: function( h ){
 			
 			/** aim position */ 
 			scene3d.hero.aim.position.x = scene3d.player.target.x;
@@ -388,9 +413,9 @@ Sc.prototype.putServerData = function(serverObjects){
 			scene3d.hero.meshRifle.lookAt( scene3d.hero.aim.position );			
 					
 			/** put Player position and rotation in ClientData */	
-			clientData.posX = scene3d.player.target.x;
-			clientData.posZ = scene3d.player.target.z; 
-			clientData.rotation = scene3d.hero.meshRifle.rotation;
+			clientData.hero.posX = scene3d.player.target.x;
+			clientData.hero.posZ = scene3d.player.target.z; 
+			clientData.hero.rotation = scene3d.hero.meshRifle.rotation;
 	
 			/** check player collision */		
 			scene3d.player.isForwardCanMove = scene3d.checkCollision({ 
@@ -708,24 +733,60 @@ En.MATERIAL = false;
 /*********************************************;
  *  CONSTRUCTOR CLIENT BULLET
  *********************************************/
+
+Sc.prototype.createNewServerBullet = function( servBullet ){
+	let objBullet = {
+		id: servBullet.id,
+		authorId: servBullet.authorId,	
+		posX: servBullet.posX,
+		posZ: servBullet.posZ,
+		spdX: servBullet.spdX,
+		spdZ: servBullet.spdZ				
+	}
+	let b = new Bullet(	objBullet );
+	scene3d.arrBullets.push(b);	
+}
+	
+Sc.prototype.createNewBullet = function(){
+
+	let objBullet = {
+		id: Math.floor(Math.random()*10000),
+		authorId: clientData.hero.id,	
+		posX:scene3d.camera.position.x,
+		posZ:scene3d.camera.position.z,
+		spdX:(scene3d.hero.aim.position.x - scene3d.camera.position.x)/3,
+		spdZ:(scene3d.hero.aim.position.z - scene3d.camera.position.z)/3				
+	}
+	clientData.arrNewBullets.push( objBullet );				
+	let b = new Bullet(	objBullet );
+	objBullet = null;
+	scene3d.arrBullets.push(b);
+	scene3d.hero.startRifleFire();
+}			
  
 var Bullet = function(v){
-	
+		
 	this.kvadrantBulletX = 0;
 	this.kvadrantBulletZ = 0;
 	
-	this.id = Bullet.id;
-	Bullet.id ++;
+	this.id = v.id;
+	this.authorId = v.authorId;
 	
-	var timeLife = 100;
+	var timeLife = 1000;
 	this.mustDie = false; 
 	
 	this.mesh = new THREE.Mesh( Bullet.geom, Bullet.material );
-	this.mesh.position.set(v.pX, 8, v.pZ);
+	this.mesh.position.set(v.posX, 8, v.posZ);
 	var spdX = v.spdX;
 	var spdZ = v.spdZ;
 	scene3d.scene.add( this.mesh );
 	
+	if (v.authorId != clientData.hero.id){
+		console.log("get from Server bullet x\y: " + spdX + " \ " + spdZ);		
+	}
+	if (v.authorId == clientData.hero.id){
+		console.log("hero createBullet x\y: " + spdX + " \ " + spdZ);		
+	}	
 	
 	this.update = function(){
 		
@@ -749,24 +810,27 @@ var Bullet = function(v){
 	
 	this.checkKillBotAndEnemy = function(){
 		
-		this.kvadrantBulletX = scene3d.calckKvadrant( this.mesh.position.x );
-		this.kvadrantBulletZ = scene3d.calckKvadrant( this.mesh.position.z );
+		if (this.authorId == clientData.hero.id){
+			
+			this.kvadrantBulletX = scene3d.calckKvadrant( this.mesh.position.x );
+			this.kvadrantBulletZ = scene3d.calckKvadrant( this.mesh.position.z );
 		
-		for ( let i=0; i<scene3d.arrBots.length; i++ ){
-			if ( this.kvadrantBulletX == scene3d.arrBots[i].kvadrantBulletX && this.kvadrantBulletZ == scene3d.arrBots[i].kvadrantBulletZ ){
-				scene3d.initExplosive( this.mesh.position.x, this.mesh.position.z );
-				scene3d.arrBots[i].getBullet();	
-				this.mustDie = true;	
+			for ( let i=0; i<scene3d.arrBots.length; i++ ){
+				if ( this.kvadrantBulletX == scene3d.arrBots[i].kvadrantBulletX && this.kvadrantBulletZ == scene3d.arrBots[i].kvadrantBulletZ ){
+					scene3d.initExplosive( this.mesh.position.x, this.mesh.position.z );
+					scene3d.arrBots[i].getBullet();	
+					this.mustDie = true;	
+				}
 			}
-		}
 		
-		for ( let i=0; i<scene3d.arrPlayers.length; i++ ){
-			if ( this.kvadrantBulletX == scene3d.arrPlayers[i].kvadrantBulletX && this.kvadrantBulletZ == scene3d.arrPlayers[i].kvadrantBulletZ ){
-				scene3d.initExplosive( this.mesh.position.x, this.mesh.position.z );
-				scene3d.arrPlayers[i].getBullet();	
-				this.mustDie = true;
-			}			
-		}	
+			for ( let i=0; i<scene3d.arrPlayers.length; i++ ){
+				if ( this.kvadrantBulletX == scene3d.arrPlayers[i].kvadrantBulletX && this.kvadrantBulletZ == scene3d.arrPlayers[i].kvadrantBulletZ ){
+					scene3d.initExplosive( this.mesh.position.x, this.mesh.position.z );
+					scene3d.arrPlayers[i].getBullet();	
+					this.mustDie = true;
+				}			
+			}
+		}		
 	}
 	
 	
@@ -782,7 +846,6 @@ var Bullet = function(v){
 };
 
 /** Bullet MESH main vars */
-Bullet.id = 0;
 Bullet.geom = new THREE.SphereGeometry( 0.3, 5, 5 ); 
 Bullet.material = new THREE.MeshBasicMaterial( {color: 0xffffff} ); 
 
@@ -797,7 +860,6 @@ Sc.prototype.initExplosive = function( x, z ){
 }
 
 var Explosive = function(x, z){
-	
 	
 	this.mustDie = false;
 	var timerLife = 50;
@@ -931,15 +993,8 @@ function addMouse(){
 	if (scene3d){
 		/** fire hero listener */	
 		scene3d.myCanvas.onclick = function(e){
-			let b = new Bullet(	{
-				pX:scene3d.camera.position.x,
-				pZ:scene3d.camera.position.z,
-				spdX:(scene3d.hero.aim.position.x - scene3d.camera.position.x)/3,
-				spdZ:(scene3d.hero.aim.position.z - scene3d.camera.position.z)/3
-			} );
-			scene3d.arrBullets.push(b);	
-			scene3d.hero.startRifleFire();
-		}
+			scene3d.createNewBullet();
+		}	
 	}	
 }
  
