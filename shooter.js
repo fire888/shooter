@@ -25,9 +25,9 @@ io.listen(server);
 /** create game object like
  *
  *	gameObj = {
- *     arrPlayers:[
+ *		arrPlayers:[
  *			{ 
- *			 	id: ... ,
+ *				id: ... ,
  *				posX: ... ,
  *				posZ: ... ,
  *				rotation: ... ,
@@ -45,6 +45,17 @@ io.listen(server);
  *				speedZ: ... ,
  *			},
  *			...
+ *		],
+ *		arrBullets[
+ *			{
+ *				id: ... ,
+ *				authorId: ... , 
+ *				posX: ... ,
+ *				posZ: ... ,
+ *				spdX: ... ,
+ *				spdZ: ...
+ *			},
+ *			...	
  *		]
  *	}
  *
