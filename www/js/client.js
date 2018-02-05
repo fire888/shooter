@@ -35,12 +35,15 @@ var clientData = {
 		rotation: 0
 	},
 		
-	arrNewBullets:[]		
+	arrNewBullets: [], 
+	arrBotsGetsBullet: [],
+	arrPlayersGetsBullet: []	
 };
 
 var sendDataToServer = function () {
 	socket.emit( 'clientData', clientData );
 	clientData.arrNewBullets = [];	
+	clientData.arrBotsGetsBullet = [];
 	timerSendDataClient = setTimeout( sendDataToServer, 500);
 }
 

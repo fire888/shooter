@@ -39,6 +39,7 @@ io.listen(server);
  *		arrBots:[		
  *			{
  *				id: ... ,
+ *				ilfes: ... ,
  *				targetPosX: ... ,
  *				targetPosZ: ... ,
  *				speedX: ... ,
@@ -68,23 +69,23 @@ var gameObj = {
 };
 
 /** create test Bots */
-var botId = 1000;
 
-function initArrBots(){
-	for (let i = 0; i < 5; i++ ){
-		botId++;		
+function createNewBot(){
 		let ob = {
-			id: botId,
-			targetPosX: Math.random()*70+70,
-			targetPosZ: Math.random()*70+70,
+			id: Math.floor(Math.random()*10000),
+			lifes: 10,
+			targetPosX: Math.random()*70,
+			targetPosZ: Math.random()*70,
 			speedX: Math.random()*2.7,
 			speedZ: Math.random()*2.7,			
 		};
 		gameObj.arrBots.push(ob);
-	}
+		console.log( "new Bot: " + ob.id )
 }
 
-initArrBots();
+for ( let i = 0; i<6; i++ ){
+	createNewBot();
+}	
 
 
 /*********************************************;
@@ -112,7 +113,14 @@ function updateGameData(){
 		}				
 	}
 
-	/** Check Bots position. If pos out of area then invert speed */ 
+	/** create new Bot */ 
+	if (gameObj.arrBots.length < 30){
+		if (Math.random()*20<1 ){
+			createNewBot();
+		}		
+	}
+	
+	/** Check Bots position. If pos out of area then invert speed */ 	
 	for (let i=0; i< gameObj.arrBots.length; i++ ){
 		if ( Math.abs(gameObj.arrBots[i].targetPosX - 70 ) >  100 ){
 			gameObj.arrBots[i].speedX = gameObj.arrBots[i].speedX *(-1);		
@@ -148,8 +156,6 @@ io.on('connection',function(socket){
 
 		/** insert in gameObj player coords */ 	
 		for ( let n = 0; n< gameObj.arrPlayers.length; n++ ){
-			
-			//console.log(gameObj.arrPlayers[n].id + "::" +  data.hero.id);	
 			
 			if (gameObj.arrPlayers[n].id == data.hero.id){
 						
@@ -196,7 +202,29 @@ io.on('connection',function(socket){
 					gameObj.arrBullets.push(bullet);
 				}										
 			}			
-		}		
+		}
+
+		/** check Bots get bullet */
+		if (data.arrBotsGetsBullet){
+			for ( let b=0; b<data.arrBotsGetsBullet.length; b++ ){
+				for ( let i=0; i<gameObj.arrBots.length; i++ ){
+					if (gameObj.arrBots[i]){					
+						if (data.arrBotsGetsBullet[b].id == gameObj.arrBots[i].id){
+							gameObj.arrBots[i].lifes--;
+							console.log("Bot ill: " + gameObj.arrBots[i].id );
+							if (gameObj.arrBots[i].lifes < 1){	
+								console.log("Bot DIE: " + gameObj.arrBots[i].id );	
+								let md = gameObj.arrBots[i];
+								gameObj.arrBots.splice(i, 1);
+								md = null;
+								i--;
+								console.log("Bots left: " + gameObj.arrBots.length )								
+							}			
+						}
+					}
+				}		
+			}
+		}			
 	});
 });  
  

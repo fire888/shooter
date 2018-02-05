@@ -213,9 +213,16 @@ var Sc = function(){
 /*********************************************;
  *  UPDATE GEOMETRY SCENE PER FRAME
  *********************************************/	
-
+var count = 0; 
+ 
 Sc.prototype.draw = function(){
 
+	/*if ( clientData.arrBotsGetsBullet.length > 0 ){
+		for (let i = 0; i<clientData.arrBotsGetsBullet.length; i++ ){
+			console.log( count + " trass: " + clientData.arrBotsGetsBullet[i].id );
+		}	
+		count ++;
+	}*/		
 	
 	/** update HERO */
 	this.hero.update( clientData.hero );
@@ -278,26 +285,58 @@ Sc.prototype.draw = function(){
 Sc.prototype.putServerData = function(serverObjects){
 	
 
-	/** UPDATE OR CREATE BOTS ============== */
+	/** UPDATE BOTS ============== */
 	
 	let serverArrBots = serverObjects.arrBots; 		
-		
-	/** create bots */ 	
-	if (this.arrBots.length == 0){
-		for (let i = 0; i < serverArrBots.length; i++ ){
-			let b = new Bot( serverArrBots[i] );
-			scene3d.arrBots.push( b );			
-		}	
-	}
-		
-	/** update bots.data from server.data */
-	for (let i = 0; i < serverArrBots.length; i++ ){
-		for ( let g = 0; g < this.arrBots.length; g++  ){				
-			if ( this.arrBots[g].id == serverArrBots[i].id ){				
-				this.arrBots[g].updateDataFromServer( serverArrBots[i] );
+	
+	let arrB = [];
+	/** update bot if bot has in scene and in server */	
+	for (let b=0; b<serverArrBots.length; b++ ){
+		for (let i=0; i<this.arrBots.length;  i++ ){
+			if ( b > -1 && i > -1 ){
+				if ( this.arrBots[i].id == serverArrBots[b].id ){
+					
+					this.arrBots[i].updateDataFromServer( serverArrBots[b] );
+					arrB.push(this.arrBots[i])
+					
+					serverArrBots.splice(b, 1)
+					b--;
+				
+
+					this.arrBots.splice(i, 1);
+					i--;
+				}			
 			}
 		}
 	}
+	
+	
+	/** remove bot if not in serve but has in scene */
+	if (this.arrBots.length > 0){
+		for (let mdi=0; mdi<this.arrBots.length; mdi++){
+			console.log(this.arrBots[mdi].id + " bot must die");
+			//this.arrBots[mdi].prepearToDie = true;
+			this.arrBots[mdi].mustDie = true;
+			let md = this.arrBots[mdi]; 
+			this.arrBots.splice( mdi, 1 );
+			mdi--;
+			md.remove();
+		    md = null;
+		}
+	}	
+
+	/** create bot if bot not in scene, but has in server */
+	if (serverArrBots.length > 0){
+		for (let newi=0; newi<serverArrBots.length; newi++ ){
+			let bot = new Bot( serverArrBots[newi] );
+			console.log("new bot id: " + serverArrBots[newi].id ) 
+			arrB.push( bot );			
+		}
+	}
+	
+
+	
+	this.arrBots = arrB;
 	
 	
 	/** UPDATE OR CREATE ENEMIES ================== */
@@ -455,7 +494,7 @@ Sc.prototype.putServerData = function(serverObjects){
  var Bot = function( servBot ){
 	 
 	this.mustDie = false;
-	var lifes = 10;
+	this.prepearToDie = false;
 	var animIllcount = 10;
 	var isIll = false;	
 	
@@ -490,12 +529,12 @@ Sc.prototype.putServerData = function(serverObjects){
 		this.kvadrantBulletX = scene3d.calckKvadrant( this.mesh.position.x );
 		this.kvadrantBulletZ = scene3d.calckKvadrant( this.mesh.position.z );
  		
-		if ( isIll == false ){
+		if ( isIll == false || this.prepearToDie == false ){
 			this.mesh.position.x += this.speedX;	
 			this.mesh.position.z += this.speedZ;
 		}	
 
-		if (isIll == true && lifes > 0 ){
+		if (isIll == true && this.prepearToDie == false ){
 			let scl = this.mesh.scale.x - 0.03;  
 			this.mesh.scale.set( scl, 1, scl );
 			animIllcount --;
@@ -505,29 +544,31 @@ Sc.prototype.putServerData = function(serverObjects){
 					animIllcount = 10;										
 			}
 		}
-		if (isIll == true && lifes == 0 ){
+		
+		if ( this.prepearToDie == true ){
 			let scl = this.mesh.scale.x + 0.01;		
 			this.mesh.scale.set( scl, 1, scl );
 			this.mesh.position.y -= 0.1;
 			if ( this.mesh.position.y < -15 ){
 				this.mustDie = true;
 			}				
-		}			
+		}		
 	}
 	
 	/** get Bullet */
 	this.getBullet = function(){
 		isIll = true;
-		if (lifes > 0){
-			lifes --;				
-		}
+		console.log(this.id + " bot get bullet");
+		clientData.arrBotsGetsBullet.push(
+			{ id:this.id }
+		)
 	}
 	
 	/** remove this OBJECT */
 	this.remove = function(){
-	
+			
+		this.prepearToDie = null;	
 		this.mustDie = null;
-		var lifes = null;
 		var animIllcount = null;
 		var isIll = null;	
 	
@@ -744,6 +785,7 @@ Sc.prototype.createNewServerBullet = function( servBullet ){
 		spdZ: servBullet.spdZ				
 	}
 	let b = new Bullet(	objBullet );
+	objBullet = null;	
 	scene3d.arrBullets.push(b);	
 }
 	
@@ -781,13 +823,6 @@ var Bullet = function(v){
 	var spdZ = v.spdZ;
 	scene3d.scene.add( this.mesh );
 	
-	if (v.authorId != clientData.hero.id){
-		console.log("get from Server bullet x\y: " + spdX + " \ " + spdZ);		
-	}
-	if (v.authorId == clientData.hero.id){
-		console.log("hero createBullet x\y: " + spdX + " \ " + spdZ);		
-	}	
-	
 	this.update = function(){
 		
 		timeLife --;
@@ -809,28 +844,29 @@ var Bullet = function(v){
 	
 	
 	this.checkKillBotAndEnemy = function(){
+					
+		this.kvadrantBulletX = scene3d.calckKvadrant( this.mesh.position.x );
+		this.kvadrantBulletZ = scene3d.calckKvadrant( this.mesh.position.z );
 		
-		if (this.authorId == clientData.hero.id){
-			
-			this.kvadrantBulletX = scene3d.calckKvadrant( this.mesh.position.x );
-			this.kvadrantBulletZ = scene3d.calckKvadrant( this.mesh.position.z );
-		
-			for ( let i=0; i<scene3d.arrBots.length; i++ ){
-				if ( this.kvadrantBulletX == scene3d.arrBots[i].kvadrantBulletX && this.kvadrantBulletZ == scene3d.arrBots[i].kvadrantBulletZ ){
-					scene3d.initExplosive( this.mesh.position.x, this.mesh.position.z );
-					scene3d.arrBots[i].getBullet();	
-					this.mustDie = true;	
-				}
+		for ( let i=0; i<scene3d.arrBots.length; i++ ){
+			if ( Bullet.checkObjectCollision( this, scene3d.arrBots[i] ) ){
+				scene3d.initExplosive( this.mesh.position.x, this.mesh.position.z );
+				//if (this.authorId == clientData.hero.id){
+					scene3d.arrBots[i].getBullet();
+				//}			
+				this.mustDie = true;	
 			}
+		}
 		
-			for ( let i=0; i<scene3d.arrPlayers.length; i++ ){
-				if ( this.kvadrantBulletX == scene3d.arrPlayers[i].kvadrantBulletX && this.kvadrantBulletZ == scene3d.arrPlayers[i].kvadrantBulletZ ){
-					scene3d.initExplosive( this.mesh.position.x, this.mesh.position.z );
-					scene3d.arrPlayers[i].getBullet();	
-					this.mustDie = true;
+		for ( let i=0; i<scene3d.arrPlayers.length; i++ ){
+			if ( Bullet.checkObjectCollision( this, scene3d.arrPlayers[i] ) ){
+				scene3d.initExplosive( this.mesh.position.x, this.mesh.position.z );
+				if (this.authorId == clientData.hero.id){
+					scene3d.arrPlayers[i].getBullet();
 				}			
-			}
-		}		
+				this.mustDie = true;
+			}			
+		}			
 	}
 	
 	
@@ -845,9 +881,23 @@ var Bullet = function(v){
 	}
 };
 
-/** Bullet MESH main vars */
+/** Bullet MESH main vars and functions*/
 Bullet.geom = new THREE.SphereGeometry( 0.3, 5, 5 ); 
 Bullet.material = new THREE.MeshBasicMaterial( {color: 0xffffff} ); 
+
+Bullet.checkObjectCollision = function( bullet, object ){
+	
+	let collision = false;
+	if ( bullet.kvadrantBulletX == object.kvadrantBulletX){
+		if (bullet.kvadrantBulletZ == object.kvadrantBulletZ ){
+			if (bullet.authorId != object.id){
+				collision = true;
+			}	
+		}
+	}			
+	/** return true if collision with obj */
+	return collision; 
+}
 
 
 /*********************************************;
