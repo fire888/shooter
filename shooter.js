@@ -31,15 +31,16 @@ var gameObj = {
 
 /** create test Bots */
 function createNewBot(){
-		let ob = {
-			id: Math.floor(Math.random()*10000),
-			lifes: 10,
-			targetPosX: Math.random()*70,
-			targetPosZ: Math.random()*70,
-			speedX: Math.random()*2.7,
-			speedZ: Math.random()*2.7,			
-		};
-		gameObj.arrBots.push(ob);
+	
+	let ob = {
+		id: Math.floor(Math.random()*10000),
+		lifes: 10,
+		targetPosX: Math.random()*70,
+		targetPosZ: Math.random()*70,
+		speedX: Math.random()*2.7,
+		speedZ: Math.random()*2.7,			
+	};
+	gameObj.arrBots.push(ob);
 }
 
 for ( let i = 0; i<6; i++ ){
@@ -132,6 +133,8 @@ io.on('connection',function(socket){
 			let player = {
 			
 				id: data.hero.id,
+				lifes: 5,
+				died: false,
 				posX: data.hero.posX,
 				posZ: data.hero.posZ,
 				rotation: data.hero.rotation,
@@ -162,7 +165,7 @@ io.on('connection',function(socket){
 			}			
 		}
 
-		/** check Bots get bullet */
+		/** check Bots gets bullet */
 		for ( let b=0; b<data.arrBotsGetsBullet.length; b++ ){
 			for ( let i=0; i<gameObj.arrBots.length; i++ ){
 				if (gameObj.arrBots[i]){					
@@ -177,7 +180,20 @@ io.on('connection',function(socket){
 					}
 				}
 			}		
-		}			
+		}
+
+		/** check Players gets bullets */
+		for ( let b=0; b<data.arrPlayersGetsBullet.length; b++ ){
+			for ( let i=0; i<gameObj.arrPlayers.length; i++ ){
+				if ( data.arrPlayersGetsBullet[b].id == gameObj.arrPlayers[i].id){
+					gameObj.arrPlayers[i].lifes --;
+					if ( gameObj.arrPlayers[i].lifes <0 ){
+						gameObj.arrPlayers[i].died = true;
+						console.log("Died plaer id: " + gameObj.arrPlayers[i].id ); 
+					}
+				}					
+			}
+		}		
 	});
 });  
  

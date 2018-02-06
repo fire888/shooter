@@ -194,12 +194,17 @@ var Sc = function(){
 				
 				scene3d.draw( );		
 				renderer.render(scene3d.scene, scene3d.camera);
-
-				frameDelta += clock.getDelta();
-				while (frameDelta >= INV_MAX_FPS){				
-					scene3d.player.update(INV_MAX_FPS);						
-					frameDelta -= INV_MAX_FPS;
-				}
+				
+				if (scene3d.hero.died == false ){
+					
+					frameDelta += clock.getDelta();
+					while (frameDelta >= INV_MAX_FPS){				
+						scene3d.player.update(INV_MAX_FPS);						
+						frameDelta -= INV_MAX_FPS;
+					}
+				}else{					
+					scene3d.hero.dieAnim();
+				}					
 				
 				if ( scene3d.flagAnim == true ){
 					requestAnimationFrame( animate );
@@ -280,7 +285,72 @@ Sc.prototype.draw = function(){
 
 Sc.prototype.putServerData = function(serverObjects){
 	
+	
+	/** UPDATE ENEMIES ================== */
 
+	let serverPlayers = serverObjects.arrPlayers;
+			
+	let arr = [];
+	/** remove obgjects from arrServer and arrGame ifs in scene */ 
+	for ( let isv=0; isv<serverPlayers.length; isv++ ){
+		for ( let ig=0; ig<this.arrPlayers.length; ig ++){
+			if ( isv > -1 ){
+				
+				/** check hero died */
+				if ( serverPlayers[isv].id == clientData.hero.id ){
+					if ( serverPlayers[isv].died == true ){
+						scene3d.hero.died = true; 
+					}
+				}
+				
+				/** update another players */
+				if ( serverPlayers[isv].id == this.arrPlayers[ig].id && serverPlayers[isv].id != clientData.hero.id  ){
+					
+					/** update objects Enemy from server */
+					this.arrPlayers[ig].updateDataFromServer(serverPlayers[isv]);	
+					
+					arr.push( this.arrPlayers[ig] );
+				
+					this.arrPlayers.splice(ig, 1);
+					ig --;				
+					serverPlayers.splice(isv, 1);
+					isv --;
+				}					
+			}
+		}
+	}
+
+	/** if in game have objects, but on server is not, 
+		delete it from game */ 	
+	for ( let imd = 0; imd< this.arrPlayers.length; imd++){
+		let md = this.arrPlayers[imd];  
+		this.arrPlayers[imd].remove();
+		this.arrPlayers.splice(imd, 1);
+		imd--;
+		md = null;			
+	}
+	
+	/** add to game all game objects  */ 	
+	this.arrPlayers = arr;
+	arr = null;
+	
+	/** if have new players in serverArr, but in game not it,
+		create new meshes */ 	
+	if ( serverPlayers.length > 0 ){
+		for ( let icr = 0; icr < serverPlayers.length; icr ++){
+			if ( serverPlayers[icr].id != clientData.hero.id ){
+				let en = new En();
+				en.id = serverPlayers[icr].id;				
+				en.mesh.position.x = serverPlayers[icr].posX;
+				en.mesh.position.y = 0;
+				en.mesh.position.z = serverPlayers[icr].posZ;
+				en.rotation = serverPlayers[icr].rotation; 
+				this.arrPlayers.push(en);				
+			}	
+		}
+	}
+	
+	
 	/** BOTS UPDATE ============== */
 	
 	let serverArrBots = serverObjects.arrBots; 		
@@ -325,62 +395,6 @@ Sc.prototype.putServerData = function(serverObjects){
 	this.arrBots = arrB;
 	
 	
-	/** UPDATE ENEMIES ================== */
-
-	let serverPlayers = serverObjects.arrPlayers;
-			
-	let arr = [];
-	/** remove obgjects from arrServer and arrGame ifs in scene */ 
-	for ( let isv=0; isv<serverPlayers.length; isv++ ){
-		for ( let ig=0; ig<this.arrPlayers.length; ig ++){
-			if ( isv > -1){	
-				if ( serverPlayers[isv].id == this.arrPlayers[ig].id && serverPlayers[isv].id != clientData.hero.id  ){
-					
-					/** update objects Enemy from server */
-					this.arrPlayers[ig].updateDataFromServer(serverPlayers[isv]);	
-					
-					arr.push( this.arrPlayers[ig] );
-				
-					this.arrPlayers.splice(ig, 1);
-					ig --;				
-					serverPlayers.splice(isv, 1);
-					isv --;
-				}	
-			}
-		}
-	}
-
-	/** if in arrGame have objects, but on server is not, 
-		delete it from arrGame */ 	
-	for ( let imd = 0; imd< this.arrPlayers.length; imd++){
-		let md = this.arrPlayers[imd];  
-		this.arrPlayers[imd].remove();
-		this.arrPlayers.splice(imd, 1);
-		imd--;
-		md = null;			
-	}
-	
-	/** add to arrGame all game objects  */ 	
-	this.arrPlayers = arr;
-	arr = null;
-	
-	/** if have new players in serverArr, but in Game not it?
-		create new meshes */ 	
-	if ( serverPlayers.length > 0 ){
-		for ( let icr = 0; icr < serverPlayers.length; icr ++){
-			if ( serverPlayers[icr].id != clientData.hero.id ){
-				let en = new En();
-				en.id = serverPlayers[icr].id;				
-				en.mesh.position.x = serverPlayers[icr].posX;
-				en.mesh.position.y = 0;
-				en.mesh.position.z = serverPlayers[icr].posZ;
-				en.rotation = serverPlayers[icr].rotation; 
-				this.arrPlayers.push(en);				
-			}	
-		}
-	}
-	
-	
 	/** CREATE SERVER BULLETS =========================== */
 	
 	let serverBullets = serverObjects.arrBullets;
@@ -402,7 +416,8 @@ Sc.prototype.putServerData = function(serverObjects){
  Sc.prototype.createObjectHero = function(){
 	 
 	this.hero = {
-		id: clientData.hero.id, 
+		id: clientData.hero.id,
+		died: false,	
 		timerRifleAnim: 0,
 		flagRifleAnim : "none",
 		meshRifle: null,	
@@ -452,9 +467,203 @@ Sc.prototype.putServerData = function(serverObjects){
 		
 		startRifleFire: function(){
 			scene3d.hero.flagRifleAnim = "top";
+		},
+
+		dieAnim: function(){
+			if (scene3d.camera.position.y > 4){
+				scene3d.camera.rotation.x += 0.01;
+				scene3d.camera.rotation.y += 0.01;	
+				scene3d.camera.position.y -=0.1;
+			}		
 		}			
 	}
 };
+
+ 
+/*********************************************;
+ *  CONSTRUCTOR ENEMY
+ *********************************************/	
+ 
+ var En = function(){
+	 
+	/** vars */
+	this.lifes = 3;
+	
+	this.id = false;
+	this.spdX = 0;
+	this.spdZ = 0;
+	this.tgtX = 0;
+	this.tgtZ = 0;
+	this.rotation = 0;
+	
+	this.kvadrantX = 0;
+	this.kvadrantZ = 0;	
+	this.kvadrantBulletX = 0;
+	this.kvadrantBulletZ = 0;		
+		
+	this.geom = En.MESH;
+	this.mat = En.MATERIAL;
+	this.mat.morphTargets = true; 	
+	this.mesh = new THREE.Mesh(this.geom, this.mat);
+	
+	scene3d.scene.add(this.mesh);	
+		
+	/** Mixer vars */
+	var phaseOld = "run";
+	this.phase = "run";	
+	var animTimer = 30;
+	
+	this.prevTime = Date.now();		
+	this.mixer = new THREE.AnimationMixer(this.mesh);
+	
+	let stay = [];
+	stay.push(this.geom.morphTargets[0])  
+	stay.push(this.geom.morphTargets[0]); 
+	var clipStay = THREE.AnimationClip.CreateFromMorphTargetSequence('ttt', stay, 0.5); 	
+	
+	let go = [];
+	for ( let aa=1; aa<21; aa++ ){
+		go.push(this.geom.morphTargets[aa]); 
+	}
+	var clipGo = THREE.AnimationClip.CreateFromMorphTargetSequence('ttt', go, 0.5);
+	
+	let ill = [];
+	for (let aa=22; aa<29; aa++  ){
+		ill.push(this.geom.morphTargets[aa]); 
+	}
+	for (let aa=29; aa>22; aa--  ){
+		ill.push(this.geom.morphTargets[aa]); 
+	}	
+	var clipIll = THREE.AnimationClip.CreateFromMorphTargetSequence('ttt', ill, 0.5);
+		
+	let death = [];
+	for ( let aa = 23; aa < 38; aa++){
+		death.push(this.geom.morphTargets[aa]); 		
+	}
+	var clipDeath = THREE.AnimationClip.CreateFromMorphTargetSequence('ttt', death, 0.5);
+
+	/** update this data from server data */	
+	this.updateDataFromServer = function(serverData){ 
+		
+		if (serverData.died == true){
+			this.phase = "dieAnim";
+		}
+		
+		if (this.phase != "dieAnim"){
+			this.spdX = scene3d.calckSpeed( this.mesh.position.x, serverData.posX );
+			this.spdZ = scene3d.calckSpeed( this.mesh.position.z, serverData.posZ );
+			this.tgtX = serverData.posX;
+			this.tgtZ = serverData.posZ;	
+			this.rotation = serverData.rotation;
+		}	
+		
+	}					
+	
+	/** update this per frame */	
+	this.updateFrame = function(){
+		
+		/** update animation */
+		if (this.mixer){
+			let time = Date.now();
+			
+			if (this.phase == "run" ){
+				this.mixer.update((time - this.prevTime) * 0.001);
+			}
+			if (this.phase == "ill" ){
+				this.mixer.update((time - this.prevTime) * 0.001);
+				animTimer --;
+				if ( animTimer == 0){
+					animTimer = 30;
+					this.phase = "none";
+					this.mixer.clipAction(clipIll).setDuration(0.5).stop();	
+				}				
+			}			
+			if (this.phase == "dieAnim"){
+				if (animTimer > 0){
+					animTimer --;					
+					this.mixer.update((time - this.prevTime) * 0.001);					
+				}
+			}
+	
+			this.prevTime = time;
+		}
+		
+		/** update statuses animation */	
+		if (this.phase != "ill" && this.phase != "dieAnim"){	
+			if ( Math.abs(this.spdX) > 0.02 || Math.abs(this.spdZ) > 0.02 ){
+				this.phase = "run";
+			}
+			if ( Math.abs(this.spdX) == 0 && Math.abs(this.spdZ) == 0 ){		
+				this.phase = "stay";
+			}
+		}
+		
+		/** start animation if phase changed */
+		if( this.phase != this.oldPhase ){
+			this.oldPhase = this.phase;	
+			
+			if (this.phase == "run"){				
+				this.mixer.clipAction(clipGo).setDuration(1.5).play();				
+			}
+			if (this.phase == "stay"){
+				this.mixer.clipAction(clipGo).setDuration(0.5).stop();		
+			}
+			if (this.phase == "ill"){
+				this.mixer.clipAction(clipIll).setDuration(0.5).play();
+			}		
+			if (this.phase == "dieAnim"){
+				animTimer = 28;			
+				this.mixer.clipAction(clipDeath).setDuration(0.5).play();				
+			}			
+		}			
+   		
+		/** update rotation */	
+		if (this.phase != "dieAnim"){	
+			this.mesh.rotation.copy( this.rotation );	
+		}
+		
+		/** update position */
+		this.kvadrantBulletX = scene3d.calckKvadrant( this.mesh.position.x );
+		this.kvadrantBulletZ = scene3d.calckKvadrant( this.mesh.position.z );		
+		
+		if ( Math.abs( this.mesh.position.x - this.tgtX ) < 2 ){
+			this.spdX = 0;	
+		}else{
+			this.mesh.position.x += this.spdX;			
+		}
+		
+		if ( Math.abs( this.mesh.position.z - this.tgtZ ) < 2 ){
+			this.spdZ = 0;	
+		}else{
+			this.mesh.position.z += this.spdZ;			
+		
+		}
+	}
+	
+	/** get bullet */
+	this.getBullet = function(){
+		clientData.arrPlayersGetsBullet.push(
+			{ id:this.id }
+		);
+		this.phase = "ill";		
+	}
+
+	/** remove this OBJECT from scene */
+	this.remove = function(){
+		scene3d.scene.remove(this.mesh);
+		this.mesh = null;
+		this.id = null;
+		this.spdX = null;
+		this.spdZ = null;
+		this.tgtX = null;
+		this.tgtZ = null;
+		this.rotation = null;			
+	}		
+ };
+
+/** enemy MESH main vars */  
+En.MESH = false; 
+En.MATERIAL = false;
 
 
 /*********************************************;
@@ -558,192 +767,10 @@ Sc.prototype.putServerData = function(serverObjects){
 
 /** Mesh variable */
 Bot.mesh = false; 
-	 
- 
-/*********************************************;
- *  CONSTRUCTOR ENEMY
- *********************************************/	
- 
- var En = function(){
-	 
-	/** vars */
-	this.lifes = 3;
-	
-	this.id = false;
-	this.spdX = 0;
-	this.spdZ = 0;
-	this.tgtX = 0;
-	this.tgtZ = 0;
-	this.rotation = 0;
-	
-	this.kvadrantX = 0;
-	this.kvadrantZ = 0;	
-	this.kvadrantBulletX = 0;
-	this.kvadrantBulletZ = 0;		
-		
-	this.geom = En.MESH;
-	this.mat = En.MATERIAL;
-	this.mat.morphTargets = true; 	
-	this.mesh = new THREE.Mesh(this.geom, this.mat);
-	
-	scene3d.scene.add(this.mesh);	
-		
-	/** Mixer vars */
-	var phaseOld = "run";
-	this.phase = "run";	
-	var animTimer = 30;
-	
-	this.prevTime = Date.now();		
-	this.mixer = new THREE.AnimationMixer(this.mesh);
-	
-	let stay = [];
-	stay.push(this.geom.morphTargets[0])  
-	stay.push(this.geom.morphTargets[0]); 
-	var clipStay = THREE.AnimationClip.CreateFromMorphTargetSequence('ttt', stay, 0.5); 	
-	
-	let go = [];
-	for ( let aa=1; aa<21; aa++ ){
-		go.push(this.geom.morphTargets[aa]); 
-	}
-	var clipGo = THREE.AnimationClip.CreateFromMorphTargetSequence('ttt', go, 0.5);
-	
-	let ill = [];
-	for (let aa=22; aa<29; aa++  ){
-		ill.push(this.geom.morphTargets[aa]); 
-	}
-	for (let aa=29; aa>22; aa--  ){
-		ill.push(this.geom.morphTargets[aa]); 
-	}	
-	var clipIll = THREE.AnimationClip.CreateFromMorphTargetSequence('ttt', ill, 0.5);
-		
-	let death = [];
-	for ( let aa = 23; aa < 38; aa++){
-		death.push(this.geom.morphTargets[aa]); 		
-	}
-	var clipDeath = THREE.AnimationClip.CreateFromMorphTargetSequence('ttt', death, 0.5);
-
-	/** update this data from server data */	
-	this.updateDataFromServer = function(serverData){ 
-	
-		this.spdX = scene3d.calckSpeed( this.mesh.position.x, serverData.posX );
-		this.spdZ = scene3d.calckSpeed( this.mesh.position.z, serverData.posZ );
-		this.tgtX = serverData.posX;
-		this.tgtZ = serverData.posZ;	
-		this.rotation = serverData.rotation;
-	}					
-	
-	/** update this per frame */	
-	this.updateFrame = function(){
-		
-		/** update animation */
-		if (this.mixer){
-			let time = Date.now();
-			
-			if (this.phase == "run" ){
-				this.mixer.update((time - this.prevTime) * 0.001);
-			}
-			if (this.phase == "ill" ){
-				this.mixer.update((time - this.prevTime) * 0.001);
-				animTimer --;
-				if ( animTimer == 0){
-					animTimer = 30;
-					this.phase = "none";
-					this.mixer.clipAction(clipIll).setDuration(0.5).stop();	
-				}				
-			}			
-			if (this.phase == "dieAnim"){
-				if (animTimer > 0){
-					animTimer --;					
-					this.mixer.update((time - this.prevTime) * 0.001);					
-				}
-			}
-	
-			this.prevTime = time;
-		}
-		
-		/** update statuses animation */	
-		if (this.phase != "ill" && this.phase != "dieAnim"){	
-			if ( Math.abs(this.spdX) > 0.02 || Math.abs(this.spdZ) > 0.02 ){
-				this.phase = "run";
-			}
-			if ( Math.abs(this.spdX) == 0 && Math.abs(this.spdZ) == 0 ){		
-				this.phase = "stay";
-			}
-		}
-		
-		/** start animation if phase changed */
-		if( this.phase != this.oldPhase ){
-			this.oldPhase = this.phase;	
-			
-			if (this.phase == "run"){				
-				this.mixer.clipAction(clipGo).setDuration(1.5).play();				
-			}
-			if (this.phase == "stay"){
-				this.mixer.clipAction(clipGo).setDuration(0.5).stop();		
-			}
-			if (this.phase == "ill"){
-				this.mixer.clipAction(clipIll).setDuration(0.5).play();
-			}		
-			if (this.phase == "dieAnim"){
-				animTimer = 28;			
-				this.mixer.clipAction(clipDeath).setDuration(0.5).play();				
-			}			
-		}			
-   		
-		/** update rotation */	
-		if (this.phase != "dieAnim"){	
-			this.mesh.rotation.copy( this.rotation );	
-		}
-		
-		/** update position */
-		this.kvadrantBulletX = scene3d.calckKvadrant( this.mesh.position.x );
-		this.kvadrantBulletZ = scene3d.calckKvadrant( this.mesh.position.z );		
-		
-		if ( Math.abs( this.mesh.position.x - this.tgtX ) < 2 ){
-			this.spdX = 0;	
-		}else{
-			this.mesh.position.x += this.spdX;			
-		}
-		
-		if ( Math.abs( this.mesh.position.z - this.tgtZ ) < 2 ){
-			this.spdZ = 0;	
-		}else{
-			this.mesh.position.z += this.spdZ;			
-		
-		}
-	}
-	
-	/** get bullet */
-	this.getBullet = function(){
-		this.lifes --;
-		if (this.lifes == 0){
-			this.phase = "dieAnim";	
-		}
-		if (this.lifes>0){
-			this.phase = "ill";
-		}	
-	}
-
-	/** remove this OBJECT from scene */
-	this.remove = function(){
-		scene3d.scene.remove(this.mesh);
-		this.mesh = null;
-		this.id = null;
-		this.spdX = null;
-		this.spdZ = null;
-		this.tgtX = null;
-		this.tgtZ = null;
-		this.rotation = null;			
-	}		
- };
-
-/** enemy MESH main vars */  
-En.MESH = false; 
-En.MATERIAL = false;
 
 
 /*********************************************;
- *  CONSTRUCTOR CLIENT BULLET
+ *  CONSTRUCTOR BULLET
  *********************************************/
 
 Sc.prototype.createNewServerBullet = function( servBullet ){
@@ -822,9 +849,7 @@ var Bullet = function(v){
 		for ( let i=0; i<scene3d.arrBots.length; i++ ){
 			if ( Bullet.checkObjectCollision( this, scene3d.arrBots[i] ) ){
 				scene3d.initExplosive( this.mesh.position.x, this.mesh.position.z );
-				//if (this.authorId == clientData.hero.id){
-					scene3d.arrBots[i].getBullet();
-				//}			
+					scene3d.arrBots[i].getBullet();		
 				this.mustDie = true;	
 			}
 		}
@@ -833,7 +858,9 @@ var Bullet = function(v){
 			if ( Bullet.checkObjectCollision( this, scene3d.arrPlayers[i] ) ){
 				scene3d.initExplosive( this.mesh.position.x, this.mesh.position.z );
 				if (this.authorId == clientData.hero.id){
-					scene3d.arrPlayers[i].getBullet();
+					if (scene3d.arrPlayers[i].phase != "dieAnim"){
+						scene3d.arrPlayers[i].getBullet();
+					}	
 				}			
 				this.mustDie = true;
 			}			

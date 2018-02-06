@@ -41,9 +41,12 @@ var clientData = {
 };
 
 var sendDataToServer = function () {
+	
 	socket.emit( 'clientData', clientData );
+	
 	clientData.arrNewBullets = [];	
 	clientData.arrBotsGetsBullet = [];
+	clientData.arrPlayersGetsBullet = [];	
 	timerSendDataClient = setTimeout( sendDataToServer, 500);
 }
 
