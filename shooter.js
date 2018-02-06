@@ -22,46 +22,7 @@ app.use(express.static('www'));
 var server = app.listen(3010);
 io.listen(server);
 
-/** create game object like
- *
- *	gameObj = {
- *		arrPlayers:[
- *			{ 
- *				id: ... ,
- *				posX: ... ,
- *				posZ: ... ,
- *				rotation: ... ,
- *				timerLife: ...,
- *				oldPosX: .... 	
- *			},
- *			...
- *		], 
- *		arrBots:[		
- *			{
- *				id: ... ,
- *				ilfes: ... ,
- *				targetPosX: ... ,
- *				targetPosZ: ... ,
- *				speedX: ... ,
- *				speedZ: ... ,
- *			},
- *			...
- *		],
- *		arrBullets[
- *			{
- *				id: ... ,
- *				authorId: ... , 
- *				posX: ... ,
- *				posZ: ... ,
- *				spdX: ... ,
- *				spdZ: ...
- *			},
- *			...	
- *		]
- *	}
- *
- */
- 
+/** create game object like */ 
 var gameObj = {
 	arrBots:[],
 	arrPlayers:[],
@@ -69,7 +30,6 @@ var gameObj = {
 };
 
 /** create test Bots */
-
 function createNewBot(){
 		let ob = {
 			id: Math.floor(Math.random()*10000),
@@ -80,7 +40,6 @@ function createNewBot(){
 			speedZ: Math.random()*2.7,			
 		};
 		gameObj.arrBots.push(ob);
-		console.log( "new Bot: " + ob.id )
 }
 
 for ( let i = 0; i<6; i++ ){
@@ -114,7 +73,7 @@ function updateGameData(){
 	}
 
 	/** create new Bot */ 
-	if (gameObj.arrBots.length < 30){
+	if (gameObj.arrBots.length < 20){
 		if (Math.random()*20<1 ){
 			createNewBot();
 		}		
@@ -134,6 +93,7 @@ function updateGameData(){
 	
 	/** Send game data to all clients. */	
 	io.sockets.emit('message', gameObj );
+	
 	/** delete Bullets */
 	gameObj.arrBullets = [];
 	
@@ -186,9 +146,7 @@ io.on('connection',function(socket){
 
 		/** insert in gameObj player coords */
 		if (data.arrNewBullets){
-
 			for ( let n = 0; n<data.arrNewBullets.length; n++ ){
-					
 				if (data.arrNewBullets[n]){
 						
 					let bullet = {
@@ -205,25 +163,20 @@ io.on('connection',function(socket){
 		}
 
 		/** check Bots get bullet */
-		if (data.arrBotsGetsBullet){
-			for ( let b=0; b<data.arrBotsGetsBullet.length; b++ ){
-				for ( let i=0; i<gameObj.arrBots.length; i++ ){
-					if (gameObj.arrBots[i]){					
-						if (data.arrBotsGetsBullet[b].id == gameObj.arrBots[i].id){
-							gameObj.arrBots[i].lifes--;
-							console.log("Bot ill: " + gameObj.arrBots[i].id );
-							if (gameObj.arrBots[i].lifes < 1){	
-								console.log("Bot DIE: " + gameObj.arrBots[i].id );	
-								let md = gameObj.arrBots[i];
-								gameObj.arrBots.splice(i, 1);
-								md = null;
-								i--;
-								console.log("Bots left: " + gameObj.arrBots.length )								
-							}			
-						}
+		for ( let b=0; b<data.arrBotsGetsBullet.length; b++ ){
+			for ( let i=0; i<gameObj.arrBots.length; i++ ){
+				if (gameObj.arrBots[i]){					
+					if (data.arrBotsGetsBullet[b].id == gameObj.arrBots[i].id){
+						gameObj.arrBots[i].lifes--;
+						if (gameObj.arrBots[i].lifes < 1){		
+							let md = gameObj.arrBots[i];
+							gameObj.arrBots.splice(i, 1);
+							md = null;
+							i--;								
+						}				
 					}
-				}		
-			}
+				}
+			}		
 		}			
 	});
 });  

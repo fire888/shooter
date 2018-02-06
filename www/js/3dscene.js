@@ -16,7 +16,6 @@
 
 var Sc = function(){
 	
-	
 
 	/** INIT VARS ****************************/
 	
@@ -30,6 +29,7 @@ var Sc = function(){
 	this.arrPlayers = [];
 	this.arrBullets = [];
 	this.arrExplosives = [];
+	this.arrObjToRemove = []; 
 	
 	/** SCENE VARS */
 	this.scene;	
@@ -216,13 +216,6 @@ var Sc = function(){
 var count = 0; 
  
 Sc.prototype.draw = function(){
-
-	/*if ( clientData.arrBotsGetsBullet.length > 0 ){
-		for (let i = 0; i<clientData.arrBotsGetsBullet.length; i++ ){
-			console.log( count + " trass: " + clientData.arrBotsGetsBullet[i].id );
-		}	
-		count ++;
-	}*/		
 	
 	/** update HERO */
 	this.hero.update( clientData.hero );
@@ -236,6 +229,17 @@ Sc.prototype.draw = function(){
 			ib--;
 			md.remove();
 			md = null;			
+		}	
+	}
+	/** update died BOTs */
+	for ( let i=0; i<this.arrObjToRemove.length; i++ ){
+		this.arrObjToRemove[i].update();
+		if (this.arrObjToRemove[i].mustDie == true){
+			let md = this.arrObjToRemove[i];
+			this.arrObjToRemove.splice(i, 1);
+			i--;
+			md.remove();
+			md = null;
 		}	
 	}
 	
@@ -267,14 +271,6 @@ Sc.prototype.draw = function(){
 			md = null;
 		}		
 	}
-	
-	/* Debugger ------- */ 
-	scene3d.debugMess = clientData.arrNewBullets.length + "<br/>";
-	for (let l=0; l< clientData.arrNewBullets.length; l++ ){
-		scene3d.debugMess += "Bullet id: " + clientData.arrNewBullets[l].id +  "<br/>";
-	}
-	$("#debugDiv").html( scene3d.debugMess );	
-	/*-------------------*/
 }	
 
 
@@ -285,7 +281,7 @@ Sc.prototype.draw = function(){
 Sc.prototype.putServerData = function(serverObjects){
 	
 
-	/** UPDATE BOTS ============== */
+	/** BOTS UPDATE ============== */
 	
 	let serverArrBots = serverObjects.arrBots; 		
 	
@@ -302,7 +298,6 @@ Sc.prototype.putServerData = function(serverObjects){
 					serverArrBots.splice(b, 1)
 					b--;
 				
-
 					this.arrBots.splice(i, 1);
 					i--;
 				}			
@@ -310,36 +305,27 @@ Sc.prototype.putServerData = function(serverObjects){
 		}
 	}
 	
-	
 	/** remove bot if not in serve but has in scene */
 	if (this.arrBots.length > 0){
 		for (let mdi=0; mdi<this.arrBots.length; mdi++){
-			console.log(this.arrBots[mdi].id + " bot must die");
-			//this.arrBots[mdi].prepearToDie = true;
-			this.arrBots[mdi].mustDie = true;
-			let md = this.arrBots[mdi]; 
+			this.arrBots[mdi].prepearToDie = true;
+			this.arrObjToRemove.push(this.arrBots[mdi]);
 			this.arrBots.splice( mdi, 1 );
-			mdi--;
-			md.remove();
-		    md = null;
 		}
 	}	
 
 	/** create bot if bot not in scene, but has in server */
 	if (serverArrBots.length > 0){
 		for (let newi=0; newi<serverArrBots.length; newi++ ){
-			let bot = new Bot( serverArrBots[newi] );
-			console.log("new bot id: " + serverArrBots[newi].id ) 
+			let bot = new Bot( serverArrBots[newi] ); 
 			arrB.push( bot );			
 		}
 	}
 	
-
-	
 	this.arrBots = arrB;
 	
 	
-	/** UPDATE OR CREATE ENEMIES ================== */
+	/** UPDATE ENEMIES ================== */
 
 	let serverPlayers = serverObjects.arrPlayers;
 			
@@ -390,13 +376,12 @@ Sc.prototype.putServerData = function(serverObjects){
 				en.mesh.position.z = serverPlayers[icr].posZ;
 				en.rotation = serverPlayers[icr].rotation; 
 				this.arrPlayers.push(en);				
-				
 			}	
 		}
 	}
 	
 	
-	/** Create server Bullets =========================== */
+	/** CREATE SERVER BULLETS =========================== */
 	
 	let serverBullets = serverObjects.arrBullets;
 	
@@ -406,22 +391,7 @@ Sc.prototype.putServerData = function(serverObjects){
 				scene3d.createNewServerBullet( serverBullets[i] );
 			}	
 		}			
-	}		
-		
-	/*DEBUGGER ---------------- */
-	scene3d.debugMess += "your id: " + clientData.hero.id + "<br/> serverPlayers:<br/>"; 
-	for (let l=0; l< serverPlayers.length; l++ ){
-		scene3d.debugMess += "id: " + serverPlayers[l].id + " lifetimer: " +  serverPlayers[l].timerLife + "<br/>";
-	}	
-	//html += "<br/> Client geomArrEnemies: <br/>"; 
-	//if ( this.arrPlayers ){	
-	//	for (let l=0; l< this.arrPlayers.length; l++ ){
-	//		html += "id: " + this.arrPlayers[l].id + " phase: "+ this.arrPlayers[l].phase + "<br/>";
-	//	}	
-	//}
-	//$("#debugDiv").html( scene3d.debugMess );
-	//scene3d.debugMess = "_";
-	/* ------------------------- */			
+	}				
 }
 	
 	
@@ -546,6 +516,8 @@ Sc.prototype.putServerData = function(serverObjects){
 		}
 		
 		if ( this.prepearToDie == true ){
+			this.speedX = 0;
+			this.speedZ = 0;
 			let scl = this.mesh.scale.x + 0.01;		
 			this.mesh.scale.set( scl, 1, scl );
 			this.mesh.position.y -= 0.1;
@@ -558,7 +530,6 @@ Sc.prototype.putServerData = function(serverObjects){
 	/** get Bullet */
 	this.getBullet = function(){
 		isIll = true;
-		console.log(this.id + " bot get bullet");
 		clientData.arrBotsGetsBullet.push(
 			{ id:this.id }
 		)
