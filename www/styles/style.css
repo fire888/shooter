@@ -15,18 +15,23 @@ body {
 	color: white;
 	font-family: roboto-light;
 	font-size: 15px; 
-	background-color: white;	
+	background-color: rgba(124, 150, 73, 1.0);	
 }
 
 a{
-	color: grey; 
+	color: rgba(42, 45, 95, 0.8);
+	text-decoration: none;
+}
+
+a:hover{
+	text-decoration: underline;
 }
 
 /** START BLOCK */
 
 #startScreen {
 	background-image:  url(../styles/back.png);
-	background-color: white;
+	background-color: rgba(156, 211, 103, 1.0);	
 	background-repeat: no-repeat;	
 	background-position: top center;	
 	height: 100%;	
@@ -41,25 +46,28 @@ a{
 }
 
 #startBlock{
-	background-color: rgba(83, 98, 79, 0.6);
+	background-color: rgba(42, 45, 95, 0.8);
 	max-width: 340px;
 	min-height: 300px;
 	margin: 0 auto;
 	padding: 20px;
 	margin-top: 50px;	
 	text-align: center;
-	border: 20px solid #ffea6e;	
+	border: 20px solid rgba(232, 79, 75, 1);	
 	overflow: hidden;
+	color: white;
 }
 
 #logo{
 	font-size: 60px;
 }
+
 #name{
 	font-weight: 800;
 	font-size: 30px;
 	margin-top: -20px;
 }
+
 #slogan{
 	font-size: 12px;
 }
@@ -76,29 +84,40 @@ a{
 	max-width: 250px;
 	margin-bottom: 15px;
 	margin-top: 30px;
+	text-align: justify;
 }
 
 #startmess ul{
 	margin: 0 auto;
 	max-width: 250px;
 	text-align: left;
-	margin-bottom:  60px;	
+	margin-bottom:  30px;	
 }
 
 #startmess ul li{
 	margin-left: 30px;
 }
 
+#loadBar{
+	margin-top: 10px;
+	padding: 5px 15px;
+	width: 225px;
+	margin-bottom: 60px;
+	min-height: 30px; 
+	background-color: rgba(232, 79, 75, 1);
+	border-radius: 3px;
+	color: white;
+}
+
 #startbutton {
+	display: none;
+	padding: 5px 15px;	
 	font-weight: 800;
 	font-size: 30px;
-	max-width: 200px;
-	padding: 5px;
-	margin: 0 auto;
-	margin-top: 30px;
+	width: 225px;
+	margin-top: 10px;
 	margin-bottom: 60px;	
-	background-color: #e4da67;
-	border: 2px solid white;
+	background-color: rgba(232, 79, 75, 1);
 	border-radius: 3px;	
 	cursor: pointer;
 	user-select: none;	
@@ -106,20 +125,20 @@ a{
 	-moz-user-select: none;
 	-khtml-user-select: none;
 	-webkit-user-select: none;	
-	color: grey;
+	color: rgba(42, 45, 95, 0.8);
 	text-align: center;
 }
 
 #startbutton:hover{	
-	background-color: #728447;
-	color: white;
+	background-color: rgba(204, 75, 232, 0.7);	
 }
 
 #copyRight {
 	margin: 0 auto;
-	margin-top: 30px;
-	color: grey;
+	margin-top: 0px;
+	color: rgba(42, 45, 95, 0.8);
 	width: 150px;
+	text-align: center;
 }
 
 /** GAME CONTENT */
@@ -130,19 +149,6 @@ a{
 	overflow: hidden;
 }
 
-/** DEBUGGER */
-
-#debugDiv {
-	min-width: 450px;
-	color: black;
-	font-size: 15px;
-	border: 2px solid #ffea6e;	
-	position:absolute;
-	left:0;
-	top:0;
-	z-index: 1000;
-}
-
 #restartButt{
 	display: none;
 	position: absolute;
@@ -150,8 +156,8 @@ a{
 	bottom: 50%;	
 	margin-left: -100px;
 	user-select: none;
-	-moz-user-select: none; /* Mozilla Firefox */
-	-webkit-user-select: none; /* Google Chrome, Opera Next, Safari */	
+	-moz-user-select: none;
+	-webkit-user-select: none;
 	width: 200px;
 	text-align: center;
 	background-color: rgba(44, 47, 37, 0.4);

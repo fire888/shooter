@@ -9,23 +9,6 @@
 */  
 
 "use strict"; 
-console.log("start main.js");
-
-
-/**************************************;
- *  GAMEPAGE VARS
- **************************************/
-
-var scene3d;
-
-var gamePage = {
-		
-	addInfoGame: function( k, d ){
-		$("#infoKills").html(k);
-		$("#infoDies").html(d);
-		$("#infoBullets").html(clientData.hero.bulletsLast);		
-	} 
-}; 
 
 
 /**************************************;
@@ -84,6 +67,55 @@ var getDataFromServer = function () {
 		}	
 	});	
 }
+
+
+/**************************************;
+ *  GAMEPAGE VARS
+ **************************************/
+
+var scene3d;
+
+var gamePage = {
+	
+	loadedRifle: false,
+	loadedEnemy: false,
+	loadedLevel: false,
+	loadedBot: false,
+	loaderBarCount: 0,
+	waitLoadStart: function(){ 
+		setTimeout( function(){
+			gamePage.loaderBarCount ++;
+			if (gamePage.loaderBarCount < 12){
+				$("#loadBar").append( " &#9760;" );
+			}else{
+				gamePage.loaderBarCount = 0;
+				$("#loadBar").html("")		
+			}
+
+			if ( gamePage.loadedBot && gamePage.loadedEnemy
+					&& gamePage.loadedLevel && gamePage.loadedRifle ){
+				$("#loadBar").hide();
+				$("#loadMess").append(" OK. Launch:");
+				$("#startbutton").show();	
+			}else{				
+				gamePage.waitLoadStart();
+			}		
+		}, 150)
+	},
+	
+	addInfoGame: function( k, d ){
+		$("#infoKills").html(k);
+		$("#infoDies").html(d);
+		$("#infoBullets").html(clientData.hero.bulletsLast);		
+	}, 
+	
+	addStartGameButton: function(){
+		$("#loadBar").hide();
+		$("#startbutton").show();
+	}
+}; 
+
+gamePage.waitLoadStart();
 
 
 /**************************************;

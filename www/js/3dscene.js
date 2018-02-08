@@ -19,7 +19,7 @@ var Sc = function(){
 
 	/** INIT VARS ****************************/
 	
-	//DEBUGGER 
+	/** DEBUGGER */ 
 	var debugMess = "_";
 	
 	/** GAME VARS   */
@@ -107,7 +107,9 @@ var Sc = function(){
 		level = object.clone(); 
 		level.position.set(140,0,140);
 		level.rotation.y = Math.PI/2;						  
-		scene3d.scene.add(level);		
+		scene3d.scene.add(level);
+		
+		gamePage.loadedLevel = true;			
 	});		
 	
 				   
@@ -125,7 +127,9 @@ var Sc = function(){
 		} );		
 		scene3d.hero.meshRifle = object;	
 		scene3d.scene.add(scene3d.hero.meshRifle); 
-		scene3d.hero.meshRifle.position.y = 10;	
+		scene3d.hero.meshRifle.position.y = 10;
+
+		gamePage.loadedRifle = true;			
 	});
 		
 	var aimGeo = new THREE.CylinderGeometry( 0.01, 0.01, 0.01, 3);
@@ -168,6 +172,8 @@ var Sc = function(){
 				child.material = botMaterial;                   						 
 		});	
 		Bot.mesh = mesh.clone();
+		
+		gamePage.loadedBot = true;			
 	});	
 	
 	
@@ -178,7 +184,9 @@ var Sc = function(){
 	function handle_load(geometry, materials) {
 		var material = materials[ 0 ];
 		En.MATERIAL = material;	
-		En.MESH = geometry; 						
+		En.MESH = geometry; 
+		
+		gamePage.loadedEnemy = true;				
 	}	
 	
 	
