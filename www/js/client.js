@@ -51,8 +51,6 @@ var getDataFromServer = function () {
 	socket.on( 'message', function (data) {		
 		scene3d.putServerData(data); 
 		
-
-		
 		for (let i=0; i<data.arrPlayers.length; i++){
 			if (data.arrPlayers[i].id == clientData.hero.id){
 				
@@ -126,9 +124,9 @@ window.onload = function (){
 	if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
 		
 		/** if mobile then hide start button */ 
-		let exitMobileMess = "Ccори....<br/>" + 
-		"<br/>В игре присутствует управление мышью. Предлагаем " + 
-		"зайти в игру с персонального компьютера или ноутбука."
+		let exitMobileMess = "Sory....<br/>" + 
+		"<br/>Game need mouse control. Come in from computer or notebook." + 
+		""
 		$("#startmess").html(exitMobileMess);
 		
 	} else {

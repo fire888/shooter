@@ -128,8 +128,10 @@ var Sc = function(){
 		scene3d.hero.meshRifle = object;	
 		scene3d.scene.add(scene3d.hero.meshRifle); 
 		scene3d.hero.meshRifle.position.y = 10;
-
-		gamePage.loadedRifle = true;			
+		scene3d.hero.restart(0);
+		
+		gamePage.loadedRifle = true;	
+		
 	});
 		
 	var aimGeo = new THREE.CylinderGeometry( 0.01, 0.01, 0.01, 3);
@@ -323,14 +325,15 @@ Sc.prototype.putServerData = function(serverObjects){
 					if ( serverPlayers[isv].restartAfterDie == true  ){	
 							let en = new En();
 							en.id = serverPlayers[isv].id;				
-							en.mesh.position.x = serverPlayers[isv].posX;
+							en.mesh.position.x = 70;
 							en.mesh.position.y = 0;
-							en.mesh.position.z = serverPlayers[isv].posZ;
+							en.mesh.position.z = 70;
 							en.rotation = serverPlayers[isv].rotation; 							
 							
 						    this.arrPlayers[ig].remove();
 							let md = this.arrPlayers[ig];
-						    this.arrPlayers[ig] = en;							
+						    this.arrPlayers[ig] = en;	
+							this.arrPlayers[ig].insertNewPosition( 0, 0 );	
 							md = null;								
 					}				
 					
@@ -465,9 +468,11 @@ Sc.prototype.putServerData = function(serverObjects){
 			scene3d.hero.meshRifle.lookAt( scene3d.hero.aim.position );			
 					
 			/** put Player position and rotation in ClientData */	
-			clientData.hero.posX = scene3d.player.target.x;
-			clientData.hero.posZ = scene3d.player.target.z; 
-			clientData.hero.rotation = scene3d.hero.meshRifle.rotation;
+			if ( clientData.hero.restart != true){
+				clientData.hero.posX = scene3d.player.target.x;
+				clientData.hero.posZ = scene3d.player.target.z; 
+				clientData.hero.rotation = scene3d.hero.meshRifle.rotation;
+			}	
 	
 			/** check player collision */		
 			scene3d.player.isForwardCanMove = scene3d.checkCollision({ 
@@ -513,12 +518,32 @@ Sc.prototype.putServerData = function(serverObjects){
 		restart: function(){
 			scene3d.scene.add( scene3d.hero.meshRifle );
 			
-			scene3d.hero.died = false,
-			scene3d.hero.timerLie = 100,		
+			scene3d.hero.died = false;
+			scene3d.hero.timerLie = 100;	
+
+			let rand = Math.floor(Math.random()*4);
+												
+			if (rand == 0){
+				clientData.hero.posX = Math.random()*50-25;
+				clientData.hero.posZ = Math.random()*50-25;							
+			}
+			if (rand == 1){
+				clientData.hero.posX = Math.random()*50-25 + 140;
+				clientData.hero.posZ = Math.random()*50-25;								
+			}
+			if (rand == 2){
+				clientData.hero.posX = Math.random()*50-25 + 140;
+				clientData.hero.posZ = Math.random()*50-25 + 140;								
+			}	
+			if (rand == 3){
+				clientData.hero.posX = Math.random()*50-25;
+				clientData.hero.posZ = Math.random()*50-25 + 140;								
+			}	
 			
-			scene3d.camera.position.y = 10;	
-			scene3d.camera.position.z = 0;
-			scene3d.camera.position.x = 130;
+			
+			scene3d.camera.position.x = clientData.hero.posX;
+			scene3d.camera.position.y = 10;				
+			scene3d.camera.position.z = clientData.hero.posZ;			
 			
 			scene3d.camera.rotation.x = 0;	
 			scene3d.camera.rotation.y = 0;	
@@ -593,8 +618,9 @@ Sc.prototype.putServerData = function(serverObjects){
 		death.push(this.geom.morphTargets[aa]); 		
 	}
 	var clipDeath = THREE.AnimationClip.CreateFromMorphTargetSequence('ttt', death, 0.5);
-
-	/** update this data from server data */	
+	
+	
+	/** update this data from server data ====================== */	
 	this.updateDataFromServer = function(serverData){ 
 		
 		/** start die phase */
@@ -610,9 +636,10 @@ Sc.prototype.putServerData = function(serverObjects){
 			this.tgtZ = serverData.posZ;	
 			this.rotation = serverData.rotation;
 		}	
-	}					
+	}
 	
-	/** update this per frame */	
+	
+	/** update this per frame ================================= */	
 	this.updateFrame = function(){
 		
 		/** update animation */
@@ -714,6 +741,16 @@ Sc.prototype.putServerData = function(serverObjects){
 		this.tgtX = null;
 		this.tgtZ = null;
 		this.rotation = null;			
+	}
+
+	this.insertNewPosition = function( x, z ){
+		console.log("ins new pos");
+		this.spdX = 0;
+		this.spdZ = 0;
+		this.tgtX = 70;
+		this.tgtZ = 70;		
+		this.mesh.position.x = 70;
+		this.mesh.position.z = 70;
 	}		
  };
 
@@ -1110,9 +1147,7 @@ function addMouse(){
 
 	$("#restartButt").click(function(){
 		$("#restartButt").hide();
-		if(scene3d){
-			clientData.hero.posX = 70;
-			clientData.hero.posZ = 70;			
+		if(scene3d){					
 			clientData.hero.restart = true;
 		}			
 	});	

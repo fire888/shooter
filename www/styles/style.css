@@ -53,7 +53,7 @@ a:hover{
 	padding: 20px;
 	margin-top: 50px;	
 	text-align: center;
-	border: 20px solid rgba(232, 79, 75, 1);	
+	border: 20px solid rgba(204, 75, 232, 0.7);	
 	overflow: hidden;
 	color: white;
 }
@@ -104,7 +104,7 @@ a:hover{
 	width: 225px;
 	margin-bottom: 60px;
 	min-height: 30px; 
-	background-color: rgba(232, 79, 75, 1);
+	background-color: rgba(204, 75, 232, 0.7);			
 	border-radius: 3px;
 	color: white;
 }
@@ -117,7 +117,7 @@ a:hover{
 	width: 225px;
 	margin-top: 10px;
 	margin-bottom: 60px;	
-	background-color: rgba(232, 79, 75, 1);
+	background-color: rgba(204, 75, 232, 0.7);	
 	border-radius: 3px;	
 	cursor: pointer;
 	user-select: none;	
@@ -130,7 +130,7 @@ a:hover{
 }
 
 #startbutton:hover{	
-	background-color: rgba(204, 75, 232, 0.7);	
+	background-color: rgba(232, 79, 75, 1);	
 }
 
 #copyRight {

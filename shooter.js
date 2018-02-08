@@ -67,7 +67,7 @@ function updateGameData(){
 				md = null;	
 				l--;
 			}else{
-				gameObj.arrPlayers[l].timerLife = 50;
+				gameObj.arrPlayers[l].timerLife = 15;
 				gameObj.arrPlayers[l].oldPosX = gameObj.arrPlayers[l].posX;					
 			}			
 		}				
@@ -158,7 +158,7 @@ io.on('connection',function(socket){
 				infoKillsBots: 0,				
 				infoDies: 0,
 				
-				timerLife: 50,
+				timerLife: 15,
 				oldPosX: data.posX		
 			}
 			gameObj.arrPlayers.push(player);
@@ -166,7 +166,7 @@ io.on('connection',function(socket){
 
 		/** BULLETS */
 
-		/** insert in gameObj player coords */
+		/** insert in gameObj new bullets coords */
 		if (data.arrNewBullets){
 			for ( let n = 0; n<data.arrNewBullets.length; n++ ){
 				if (data.arrNewBullets[n]){
