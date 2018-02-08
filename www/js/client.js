@@ -17,7 +17,15 @@ console.log("start main.js");
  **************************************/
 
 var scene3d;
-var gamePage = {}; 
+
+var gamePage = {
+		
+	addInfoGame: function( k, d ){
+		$("#infoKills").html(k);
+		$("#infoDies").html(d);
+		$("#infoBullets").html(clientData.hero.bulletsLast);		
+	} 
+}; 
 
 
 /**************************************;
@@ -32,7 +40,11 @@ var clientData = {
 		id: Math.floor(Math.random()*100000),	
 		posX:0,
 		posZ:0,
-		rotation: 0
+		rotation: 0,
+		restart: false,
+		
+		bulletsLast: 100,
+		infoKillsBotsOld: 0, 
 	},
 		
 	arrNewBullets: [], 
@@ -46,13 +58,30 @@ var sendDataToServer = function () {
 	
 	clientData.arrNewBullets = [];	
 	clientData.arrBotsGetsBullet = [];
-	clientData.arrPlayersGetsBullet = [];	
+	clientData.arrPlayersGetsBullet = [];
+	clientData.hero.restart = false;
+	
 	timerSendDataClient = setTimeout( sendDataToServer, 500);
 }
 
 var getDataFromServer = function () {
 	socket.on( 'message', function (data) {		
-		scene3d.putServerData(data); 		
+		scene3d.putServerData(data); 
+		
+
+		
+		for (let i=0; i<data.arrPlayers.length; i++){
+			if (data.arrPlayers[i].id == clientData.hero.id){
+				
+				gamePage.addInfoGame(data.arrPlayers[i].infoKills, data.arrPlayers[i].infoDies );
+						
+				if (data.arrPlayers[i].infoKillsBots > clientData.hero.infoKillsBotsOld){
+					clientData.hero.bulletsLast += 35;
+					clientData.hero.infoKillsBotsOld = data.arrPlayers[i].infoKillsBots; 					
+				}
+					
+			}
+		}	
 	});	
 }
 

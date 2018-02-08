@@ -142,3 +142,63 @@ a{
 	top:0;
 	z-index: 1000;
 }
+
+#restartButt{
+	display: none;
+	position: absolute;
+	left: 50%;
+	bottom: 50%;	
+	margin-left: -100px;
+	user-select: none;
+	-moz-user-select: none; /* Mozilla Firefox */
+	-webkit-user-select: none; /* Google Chrome, Opera Next, Safari */	
+	width: 200px;
+	text-align: center;
+	background-color: rgba(44, 47, 37, 0.4);
+	padding: 20px;	
+	cursor: pointer;
+}
+
+#restartButt:hover{
+	background-color: rgba(204, 75, 232, 0.7);
+}
+
+#infoKills{
+	position: absolute;
+	left: 30px;
+	bottom: 30px;	
+	user-select: none;
+	-moz-user-select: none; 
+	-webkit-user-select: none; 	
+	width: 100px;
+	text-align: center;
+	color: rgba(204, 75, 232, 0.7);
+	font-size: 30px;	
+}
+
+#infoDies{
+	position: absolute;
+	left: 80px;
+	bottom: 30px;	
+	user-select: none;
+	-moz-user-select: none; 
+	-webkit-user-select: none; 	
+	width: 100px;
+	text-align: center;
+	color: black;
+	font-size: 30px;		
+} 	
+
+#infoBullets{
+	position: absolute;
+	right: 80px;
+	bottom: 30px;	
+	user-select: none;
+	-moz-user-select: none;
+	-webkit-user-select: none; 	
+	width: 100px;
+	text-align: center;
+	color: white;
+	font-size: 30px;		
+}
+

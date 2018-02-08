@@ -288,27 +288,46 @@ Sc.prototype.putServerData = function(serverObjects){
 	
 	/** UPDATE ENEMIES ================== */
 
-	let serverPlayers = serverObjects.arrPlayers;
-			
+	let serverPlayers = serverObjects.arrPlayers;	
 	let arr = [];
+	
 	/** remove obgjects from arrServer and arrGame ifs in scene */ 
 	for ( let isv=0; isv<serverPlayers.length; isv++ ){
+		
+		/** check hero died */
+		if ( serverPlayers[isv].id == clientData.hero.id  ){
+			if ( serverPlayers[isv].died == true ){
+				scene3d.hero.died = true; 
+			}
+			if ( serverPlayers[isv].died == false && scene3d.hero.died == true ){
+				scene3d.hero.restart(); 
+			}					
+		}
+				
 		for ( let ig=0; ig<this.arrPlayers.length; ig ++){
 			if ( isv > -1 ){
-				
-				/** check hero died */
-				if ( serverPlayers[isv].id == clientData.hero.id ){
-					if ( serverPlayers[isv].died == true ){
-						scene3d.hero.died = true; 
-					}
-				}
-				
+								
 				/** update another players */
 				if ( serverPlayers[isv].id == this.arrPlayers[ig].id && serverPlayers[isv].id != clientData.hero.id  ){
 					
-					/** update objects Enemy from server */
-					this.arrPlayers[ig].updateDataFromServer(serverPlayers[isv]);	
 					
+					/** delete current mesh create new mesh if restart */
+					if ( serverPlayers[isv].restartAfterDie == true  ){	
+							let en = new En();
+							en.id = serverPlayers[isv].id;				
+							en.mesh.position.x = serverPlayers[isv].posX;
+							en.mesh.position.y = 0;
+							en.mesh.position.z = serverPlayers[isv].posZ;
+							en.rotation = serverPlayers[isv].rotation; 							
+							
+						    this.arrPlayers[ig].remove();
+							let md = this.arrPlayers[ig];
+						    this.arrPlayers[ig] = en;							
+							md = null;								
+					}				
+					
+					this.arrPlayers[ig].updateDataFromServer(serverPlayers[isv]);	
+	
 					arr.push( this.arrPlayers[ig] );
 				
 					this.arrPlayers.splice(ig, 1);
@@ -405,9 +424,9 @@ Sc.prototype.putServerData = function(serverObjects){
 				scene3d.createNewServerBullet( serverBullets[i] );
 			}	
 		}			
-	}				
+	}	
 }
-	
+
 	
 /*********************************************;
  *  OBJECT HERO  
@@ -423,6 +442,7 @@ Sc.prototype.putServerData = function(serverObjects){
 		meshRifle: null,	
 		aim: null,
 		controls: null,
+		timerLie: 100,  
 		
 		update: function( h ){
 			
@@ -470,12 +490,37 @@ Sc.prototype.putServerData = function(serverObjects){
 		},
 
 		dieAnim: function(){
+			scene3d.hero.timerLie --;
+			if (scene3d.hero.timerLie == 95){
+				addRestartButt();
+			}				
 			if (scene3d.camera.position.y > 4){
+				scene3d.scene.remove( scene3d.hero.meshRifle );
 				scene3d.camera.rotation.x += 0.01;
 				scene3d.camera.rotation.y += 0.01;	
 				scene3d.camera.position.y -=0.1;
-			}		
-		}			
+			}	
+		},
+		
+		restart: function(){
+			scene3d.scene.add( scene3d.hero.meshRifle );
+			
+			scene3d.hero.died = false,
+			scene3d.hero.timerLie = 100,		
+			
+			scene3d.camera.position.y = 10;	
+			scene3d.camera.position.z = 0;
+			scene3d.camera.position.x = 130;
+			
+			scene3d.camera.rotation.x = 0;	
+			scene3d.camera.rotation.y = 0;	
+
+			/** put Player position and rotation in ClientData */	
+			clientData.hero.posX = scene3d.player.target.x;
+			clientData.hero.posZ = scene3d.player.target.z; 
+			clientData.hero.rotation = scene3d.hero.meshRifle.rotation;			
+			
+		}
 	}
 };
 
@@ -487,8 +532,6 @@ Sc.prototype.putServerData = function(serverObjects){
  var En = function(){
 	 
 	/** vars */
-	this.lifes = 3;
-	
 	this.id = false;
 	this.spdX = 0;
 	this.spdZ = 0;
@@ -505,6 +548,7 @@ Sc.prototype.putServerData = function(serverObjects){
 	this.mat = En.MATERIAL;
 	this.mat.morphTargets = true; 	
 	this.mesh = new THREE.Mesh(this.geom, this.mat);
+	this.mesh.position.set( 70, 0, 70);
 	
 	scene3d.scene.add(this.mesh);	
 		
@@ -545,10 +589,12 @@ Sc.prototype.putServerData = function(serverObjects){
 	/** update this data from server data */	
 	this.updateDataFromServer = function(serverData){ 
 		
-		if (serverData.died == true){
+		/** start die phase */
+		if (serverData.died == true && this.phase != "dieAnim"){
 			this.phase = "dieAnim";
-		}
-		
+		}	
+			
+		/** update this from server */
 		if (this.phase != "dieAnim"){
 			this.spdX = scene3d.calckSpeed( this.mesh.position.x, serverData.posX );
 			this.spdZ = scene3d.calckSpeed( this.mesh.position.z, serverData.posZ );
@@ -556,7 +602,6 @@ Sc.prototype.putServerData = function(serverObjects){
 			this.tgtZ = serverData.posZ;	
 			this.rotation = serverData.rotation;
 		}	
-		
 	}					
 	
 	/** update this per frame */	
@@ -641,9 +686,12 @@ Sc.prototype.putServerData = function(serverObjects){
 	}
 	
 	/** get bullet */
-	this.getBullet = function(){
+	this.getBullet = function( autorBulletId ){
 		clientData.arrPlayersGetsBullet.push(
-			{ id:this.id }
+			{ 
+				id: this.id,
+				authorId: autorBulletId 	
+			}
 		);
 		this.phase = "ill";		
 	}
@@ -737,10 +785,13 @@ En.MATERIAL = false;
 	}
 	
 	/** get Bullet */
-	this.getBullet = function(){
+	this.getBullet = function( autorBulletId ){
 		isIll = true;
 		clientData.arrBotsGetsBullet.push(
-			{ id:this.id }
+			{ 
+				id:this.id,
+				authorId: autorBulletId 
+			}
 		)
 	}
 	
@@ -849,7 +900,7 @@ var Bullet = function(v){
 		for ( let i=0; i<scene3d.arrBots.length; i++ ){
 			if ( Bullet.checkObjectCollision( this, scene3d.arrBots[i] ) ){
 				scene3d.initExplosive( this.mesh.position.x, this.mesh.position.z );
-					scene3d.arrBots[i].getBullet();		
+					scene3d.arrBots[i].getBullet( this.authorId );		
 				this.mustDie = true;	
 			}
 		}
@@ -859,7 +910,7 @@ var Bullet = function(v){
 				scene3d.initExplosive( this.mesh.position.x, this.mesh.position.z );
 				if (this.authorId == clientData.hero.id){
 					if (scene3d.arrPlayers[i].phase != "dieAnim"){
-						scene3d.arrPlayers[i].getBullet();
+						scene3d.arrPlayers[i].getBullet( this.authorId );
 					}	
 				}			
 				this.mustDie = true;
@@ -1034,15 +1085,35 @@ Sc.prototype.stopAnim = function(){
  
  
 /*********************************************;
- *  MOUSE CLICK LISTENER for FIRE HERO
+ *  INTERFACE
  *********************************************/ 
 
+/** add mouse click to fire */  
 function addMouse(){ 
 	if (scene3d){
 		/** fire hero listener */	
 		scene3d.myCanvas.onclick = function(e){
-			scene3d.createNewBullet();
+			if ( clientData.hero.bulletsLast > 0 ){
+				scene3d.createNewBullet();
+				clientData.hero.bulletsLast --;
+			}
 		}	
-	}	
+	}
+
+	$("#restartButt").click(function(){
+		$("#restartButt").hide();
+		if(scene3d){
+			clientData.hero.posX = 70;
+			clientData.hero.posZ = 70;			
+			clientData.hero.restart = true;
+		}			
+	});	
 }
+
+/** show/hide regen button */
+function addRestartButt(){
+	$("#restartButt").show();
+}
+
+
  

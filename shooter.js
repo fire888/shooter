@@ -9,7 +9,7 @@
 
 
 /*********************************************;
- *  CREATE APPLICATION.
+ *  CREATE APPLICATION
  *********************************************/
  
 /** init server */
@@ -22,7 +22,7 @@ app.use(express.static('www'));
 var server = app.listen(3010);
 io.listen(server);
 
-/** create game object like */ 
+/** create game object */ 
 var gameObj = {
 	arrBots:[],
 	arrPlayers:[],
@@ -67,7 +67,7 @@ function updateGameData(){
 				md = null;	
 				l--;
 			}else{
-				gameObj.arrPlayers[l].timerLife = 15;
+				gameObj.arrPlayers[l].timerLife = 50;
 				gameObj.arrPlayers[l].oldPosX = gameObj.arrPlayers[l].posX;					
 			}			
 		}				
@@ -92,11 +92,18 @@ function updateGameData(){
 		gameObj.arrBots[i].targetPosZ =  gameObj.arrBots[i].targetPosZ + gameObj.arrBots[i].speedZ;		
 	}
 	
-	/** Send game data to all clients. */	
+	/** Send game data to all clients ============================= */	
 	io.sockets.emit('message', gameObj );
 	
-	/** delete Bullets */
+	/** Reset arr Bullets */
 	gameObj.arrBullets = [];
+	
+	/** Reset Players Restart flags */
+	for (let i=0; i<gameObj.arrPlayers.length; i++  ){
+		if ( gameObj.arrPlayers[i].restartAfterDie == true ){
+			gameObj.arrPlayers[i].restartAfterDie = false;			
+		}
+	}
 	
 	timerUpdate = setTimeout( updateGameData, 500);	
 }	
@@ -124,7 +131,14 @@ io.on('connection',function(socket){
 						
 				gameObj.arrPlayers[n].posX = data.hero.posX;
 				gameObj.arrPlayers[n].posZ = data.hero.posZ;	
-				gameObj.arrPlayers[n].rotation = data.hero.rotation;		
+				gameObj.arrPlayers[n].rotation = data.hero.rotation;
+
+				if ( data.hero.restart == true ){
+					gameObj.arrPlayers[n].died = false;	
+					gameObj.arrPlayers[n].lifes = 5;
+					gameObj.arrPlayers[n].restartAfterDie = true;		
+					console.log("player regen ID: " + gameObj.arrPlayers[n].id );	
+				}					
 			}			
 		}
 		
@@ -135,11 +149,16 @@ io.on('connection',function(socket){
 				id: data.hero.id,
 				lifes: 5,
 				died: false,
+				restartAfterDie: false,
 				posX: data.hero.posX,
 				posZ: data.hero.posZ,
 				rotation: data.hero.rotation,
-			
-				timerLife: 15,
+				
+				infoKills: 0,
+				infoKillsBots: 0,				
+				infoDies: 0,
+				
+				timerLife: 50,
 				oldPosX: data.posX		
 			}
 			gameObj.arrPlayers.push(player);
@@ -171,11 +190,17 @@ io.on('connection',function(socket){
 				if (gameObj.arrBots[i]){					
 					if (data.arrBotsGetsBullet[b].id == gameObj.arrBots[i].id){
 						gameObj.arrBots[i].lifes--;
-						if (gameObj.arrBots[i].lifes < 1){		
+						if (gameObj.arrBots[i].lifes == 0){		
 							let md = gameObj.arrBots[i];
 							gameObj.arrBots.splice(i, 1);
 							md = null;
-							i--;								
+							i--;	
+
+							for ( let n=0; n<gameObj.arrPlayers.length; n++ ){
+								if ( data.arrBotsGetsBullet[b].authorId == gameObj.arrPlayers[n].id ){
+									gameObj.arrPlayers[n].infoKillsBots ++;								
+								}
+							}								
 						}				
 					}
 				}
@@ -187,9 +212,17 @@ io.on('connection',function(socket){
 			for ( let i=0; i<gameObj.arrPlayers.length; i++ ){
 				if ( data.arrPlayersGetsBullet[b].id == gameObj.arrPlayers[i].id){
 					gameObj.arrPlayers[i].lifes --;
-					if ( gameObj.arrPlayers[i].lifes <0 ){
+					if ( gameObj.arrPlayers[i].lifes == 0 ){
+						
 						gameObj.arrPlayers[i].died = true;
-						console.log("Died plaer id: " + gameObj.arrPlayers[i].id ); 
+						gameObj.arrPlayers[i].infoDies ++;
+						console.log("player died id: " + gameObj.arrPlayers[i].id);
+						
+						for ( let n=0; n<gameObj.arrPlayers.length; n++ ){
+							if ( data.arrPlayersGetsBullet[b].authorId == gameObj.arrPlayers[n].id ){
+								gameObj.arrPlayers[n].infoKills ++;								
+							}
+						}
 					}
 				}					
 			}
