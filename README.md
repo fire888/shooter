@@ -1,6 +1,6 @@
 
 
-# Online 3d Shooter  
+# Online 3d Shooter :bomb: #
 
 ![language](https://img.shields.io/badge/code-es6-green.svg) 
 ![Build status](https://img.shields.io/badge/build-passing-green.svg) 
