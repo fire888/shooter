@@ -16,5 +16,5 @@ Online browser game on *nodejs* and *threejs*.
 Kill enemies for frags, and kill bots to take bullets.  
 To kill yourself open shooter in new browser tab. 
 
-[Let's play](http://shooter.e2e4d7d5.ru) 
+[Let's play](http://31.177.78.79:3010) 
 
