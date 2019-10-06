@@ -5,12 +5,12 @@
   "author": "www.otrisovano.ru",  
   "main": "shooter.js",
   "scripts": {
-    "backend": "node shooter.js",
+    "backend": "node shooter.js"
   },
   "dependencies": {
     "express": "^4.16.2",
     "http": "^1",	
     "socket.io": "^1",	
-    "fs": "^1",		
+    "fs": "^1"
   }
 }
